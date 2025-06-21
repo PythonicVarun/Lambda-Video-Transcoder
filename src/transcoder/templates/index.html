@@ -128,181 +128,13 @@
                 <section
                     class="mt-6 md:mt-8 bg-[var(--secondary-color)] rounded-xl border border-[var(--accent-color)] p-6">
                     <h2 class="text-2xl font-bold text-[var(--text-primary)] mb-6">My Videos</h2>
-                    <div
+                    <div id="videos-container"
                         class="grid grid-cols-1 @[480px]:grid-cols-2 @[1024px]:grid-cols-3 @[1280px]:grid-cols-4 gap-6">
-                        <div
-                            class="bg-[var(--background-color)] rounded-lg overflow-hidden group border border-[var(--accent-color)] hover:border-[var(--primary-color)] transition-all duration-300 hover:shadow-2xl hover:scale-[1.02]">
-                            <div class="relative aspect-video bg-[var(--accent-color)]">
-                                <img alt="Video thumbnail" class="object-cover w-full h-full"
-                                    src="https://lh3.googleusercontent.com/aida-public/AB6AXuDi215JVh70f2lTwXMjJIFGKY19TRNuWf-vzfqTYKCiO9c0UXZOafayHeUHxskeAalmYx-XXkXZi3BuByAPer37UBpbh7MacxJj4Q0Dm2hM5XNUhL37jMWipugCuSXy-EnrKJ4gaWFueYfGvb6zSPJlJropCvbiA6cM-FOle6nqMJBvSmEOFHt09aAHLxX2QxDWBZ76YVMh0n5a8AVbz8xx_Olq4XLMjMV5LXdSoWxgHXC3q0cKGlT_ZOcvah8Gzj8AtJAI_NqoPm12" />
-                                <div
-                                    class="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                                    <button class="text-[var(--primary-color)] icon-glow">
-                                        <svg class="w-12 h-12" fill="currentColor" viewBox="0 0 20 20"
-                                            xmlns="http://www.w3.org/2000/svg">
-                                            <path clip-rule="evenodd"
-                                                d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z"
-                                                fill-rule="evenodd"></path>
-                                        </svg>
-                                    </button>
-                                </div>
-                                <span
-                                    class="absolute bottom-2 right-2 bg-black/70 text-white text-xs px-1.5 py-0.5 rounded">12:34</span>
-                            </div>
-                            <div class="p-4">
-                                <h3 class="text-md font-semibold text-[var(--text-primary)] truncate"
-                                    title="My Awesome Video Title That Might Be Very Long">My Awesome Video Title That
-                                    Might Be Very Long</h3>
-                                <p class="text-xs text-[var(--text-secondary)]">Uploaded: 2 days ago</p>
-                                <div class="flex justify-between items-center mt-2">
-                                    <span
-                                        class="text-xs bg-[var(--primary-color)]/20 text-[var(--primary-color)] px-2 py-0.5 rounded-full">1080p</span>
-                                    <div class="flex space-x-2">
-                                        <button
-                                            class="text-[var(--text-secondary)] hover:text-[var(--primary-color)] transition-colors">
-                                            <svg fill="currentColor" height="16" viewBox="0 0 16 16" width="16"
-                                                xmlns="http://www.w3.org/2000/svg">
-                                                <path
-                                                    d="M15.502 1.94a.5.5 0 0 1 0 .706L14.459 3.69l-2-2L13.502.646a.5.5 0 0 1 .707 0l1.293 1.293zm-1.75 2.456-2-2L4.939 9.21a.5.5 0 0 0-.121.196l-.805 2.414a.25.25 0 0 0 .316.316l2.414-.805a.5.5 0 0 0 .196-.12l6.813-6.814z">
-                                                </path>
-                                                <path
-                                                    d="M1 13.5A1.5 1.5 0 0 0 2.5 15h11a1.5 1.5 0 0 0 1.5-1.5v-6a.5.5 0 0 0-1 0v6a.5.5 0 0 1-.5.5h-11a.5.5 0 0 1-.5-.5v-11a.5.5 0 0 1 .5-.5H9a.5.5 0 0 0 0-1H2.5A1.5 1.5 0 0 0 1 2.5v11z"
-                                                    fill-rule="evenodd"></path>
-                                            </svg>
-                                        </button>
-                                        <button
-                                            class="text-[var(--text-secondary)] hover:text-red-500 transition-colors">
-                                            <svg fill="currentColor" height="16" viewBox="0 0 16 16" width="16"
-                                                xmlns="http://www.w3.org/2000/svg">
-                                                <path
-                                                    d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V6z">
-                                                </path>
-                                                <path
-                                                    d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1v1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4H4.118zM2.5 3V2h11v1h-11z"
-                                                    fill-rule="evenodd"></path>
-                                            </svg>
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <div
-                            class="bg-[var(--background-color)] rounded-lg overflow-hidden group border border-[var(--accent-color)] hover:border-[var(--primary-color)] transition-all duration-300 hover:shadow-2xl hover:scale-[1.02]">
-                            <div
-                                class="relative aspect-video bg-[var(--accent-color)] flex items-center justify-center">
-                                <svg class="w-16 h-16 text-[var(--text-secondary)] opacity-50" fill="currentColor"
-                                    viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-                                    <path clip-rule="evenodd"
-                                        d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z"
-                                        fill-rule="evenodd"></path>
-                                </svg>
-                                <div
-                                    class="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                                    <button class="text-[var(--primary-color)] icon-glow">
-                                        <svg class="w-12 h-12" fill="currentColor" viewBox="0 0 20 20"
-                                            xmlns="http://www.w3.org/2000/svg">
-                                            <path clip-rule="evenodd"
-                                                d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z"
-                                                fill-rule="evenodd"></path>
-                                        </svg>
-                                    </button>
-                                </div>
-                                <span
-                                    class="absolute bottom-2 right-2 bg-black/70 text-white text-xs px-1.5 py-0.5 rounded">08:15</span>
-                            </div>
-                            <div class="p-4">
-                                <h3 class="text-md font-semibold text-[var(--text-primary)] truncate"
-                                    title="Another Video Presentation">Another Video Presentation</h3>
-                                <p class="text-xs text-[var(--text-secondary)]">Uploaded: 5 days ago</p>
-                                <div class="flex justify-between items-center mt-2">
-                                    <span
-                                        class="text-xs bg-[var(--primary-color)]/20 text-[var(--primary-color)] px-2 py-0.5 rounded-full">720p</span>
-                                    <div class="flex space-x-2">
-                                        <button
-                                            class="text-[var(--text-secondary)] hover:text-[var(--primary-color)] transition-colors">
-                                            <svg fill="currentColor" height="16" viewBox="0 0 16 16" width="16"
-                                                xmlns="http://www.w3.org/2000/svg">
-                                                <path
-                                                    d="M15.502 1.94a.5.5 0 0 1 0 .706L14.459 3.69l-2-2L13.502.646a.5.5 0 0 1 .707 0l1.293 1.293zm-1.75 2.456-2-2L4.939 9.21a.5.5 0 0 0-.121.196l-.805 2.414a.25.25 0 0 0 .316.316l2.414-.805a.5.5 0 0 0 .196-.12l6.813-6.814z">
-                                                </path>
-                                                <path
-                                                    d="M1 13.5A1.5 1.5 0 0 0 2.5 15h11a1.5 1.5 0 0 0 1.5-1.5v-6a.5.5 0 0 0-1 0v6a.5.5 0 0 1-.5.5h-11a.5.5 0 0 1-.5-.5v-11a.5.5 0 0 1 .5-.5H9a.5.5 0 0 0 0-1H2.5A1.5 1.5 0 0 0 1 2.5v11z"
-                                                    fill-rule="evenodd"></path>
-                                            </svg>
-                                        </button>
-                                        <button
-                                            class="text-[var(--text-secondary)] hover:text-red-500 transition-colors">
-                                            <svg fill="currentColor" height="16" viewBox="0 0 16 16" width="16"
-                                                xmlns="http://www.w3.org/2000/svg">
-                                                <path
-                                                    d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V6z">
-                                                </path>
-                                                <path
-                                                    d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1v1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4H4.118zM2.5 3V2h11v1h-11z"
-                                                    fill-rule="evenodd"></path>
-                                            </svg>
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <div
-                            class="col-span-full text-center text-[var(--text-secondary)] text-sm py-8 @[1024px]:col-start-2 @[1024px]:col-span-1 @[1280px]:col-start-2 @[1280px]:col-span-2">
+                        <div id="no-videos-message"
+                            class="col-span-full text-center text-[var(--text-secondary)] text-sm py-8">
                             No videos found. <a class="text-[var(--primary-color)] hover:underline" href="#">Upload your
                                 first video!</a>
                         </div>
-                    </div>
-                    <div class="mt-8 flex justify-center">
-                        <nav aria-label="Pagination" class="flex rounded-md shadow-sm -space-x-px">
-                            <a class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-[var(--accent-color)] bg-[var(--background-color)] text-sm font-medium text-[var(--text-secondary)] hover:bg-[var(--accent-color)]"
-                                href="#">
-                                <span class="sr-only">Previous</span>
-                                <svg aria-hidden="true" class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20"
-                                    xmlns="http://www.w3.org/2000/svg">
-                                    <path clip-rule="evenodd"
-                                        d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z"
-                                        fill-rule="evenodd"></path>
-                            </a>
-                            <a aria-current="page"
-                                class="relative z-10 inline-flex items-center px-4 py-2 border border-[var(--primary-color)] bg-[var(--primary-color)]/20 text-sm font-medium text-[var(--primary-color)]"
-                                href="#">
-                                1
-                            </a>
-                            <a class="relative inline-flex items-center px-4 py-2 border border-[var(--accent-color)] bg-[var(--background-color)] text-sm font-medium text-[var(--text-secondary)] hover:bg-[var(--accent-color)]"
-                                href="#">
-                                2
-                            </a>
-                            <a class="relative hidden @[480px]:inline-flex items-center px-4 py-2 border border-[var(--accent-color)] bg-[var(--background-color)] text-sm font-medium text-[var(--text-secondary)] hover:bg-[var(--accent-color)]"
-                                href="#">
-                                3
-                            </a>
-                            <span
-                                class="relative inline-flex items-center px-4 py-2 border border-[var(--accent-color)] bg-[var(--background-color)] text-sm font-medium text-[var(--text-secondary)]">
-                                ... </span>
-                            <a class="relative hidden @[480px]:inline-flex items-center px-4 py-2 border border-[var(--accent-color)] bg-[var(--background-color)] text-sm font-medium text-[var(--text-secondary)] hover:bg-[var(--accent-color)]"
-                                href="#">
-                                8
-                            </a>
-                            <a class="relative inline-flex items-center px-4 py-2 border border-[var(--accent-color)] bg-[var(--background-color)] text-sm font-medium text-[var(--text-secondary)] hover:bg-[var(--accent-color)]"
-                                href="#">
-                                9
-                            </a>
-                            <a class="relative inline-flex items-center px-4 py-2 border border-[var(--accent-color)] bg-[var(--background-color)] text-sm font-medium text-[var(--text-secondary)] hover:bg-[var(--accent-color)]"
-                                href="#">
-                                10
-                            </a>
-                            <a class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-[var(--accent-color)] bg-[var(--background-color)] text-sm font-medium text-[var(--text-secondary)] hover:bg-[var(--accent-color)]"
-                                href="#">
-                                <span class="sr-only">Next</span>
-                                <svg aria-hidden="true" class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20"
-                                    xmlns="http://www.w3.org/2000/svg">
-                                    <path clip-rule="evenodd"
-                                        d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"
-                                        fill-rule="evenodd">
-                                    </path>
-                                </svg>
-                            </a>
-                        </nav>
                     </div>
                 </section>
             </main>
@@ -485,11 +317,8 @@
             const progressElement = document.createElement('div');
             progressElement.id = `progress-${video_id}`;
             progressElement.className = 'bg-[var(--background-color)] p-4 rounded-lg border border-[var(--accent-color)]';
-
-            let chunksHtml = '';
-            for (let i = 1; i <= totalChunks; i++) {
-                chunksHtml += `<div id="chunk-${video_id}-${i}" class="chunk-status-box">${i}</div>`;
-            }
+            progressElement.dataset.totalChunks = totalChunks;
+            progressElement.dataset.completedChunks = 0;
 
             progressElement.innerHTML = `
                     <div class="flex justify-between items-center mb-2">
@@ -499,34 +328,32 @@
                     <div class="w-full bg-[var(--accent-color)] rounded-full h-2.5">
                         <div class="bg-[var(--primary-color)] h-2.5 rounded-full" id="progress-bar-${video_id}" style="width: 0%;"></div>
                     </div>
-                    <div class="text-xs text-[var(--text-secondary)] mt-2">Chunks:</div>
-                    <div class="flex flex-wrap gap-1 mt-1">${chunksHtml}</div>
                     <div id="preset-status-${video_id}" class="text-xs text-[var(--text-secondary)] mt-2"></div>
                 `;
             progressContainer.appendChild(progressElement);
         }
 
         function updateChunkProgress(video_id, partNumber, status) {
-            const chunkBox = document.getElementById(`chunk-${video_id}-${partNumber}`);
-            if (chunkBox) {
-                if (status === 'complete') {
-                    chunkBox.style.backgroundColor = 'var(--green-500)';
-                    chunkBox.style.color = 'white';
-                } else if (status === 'failed') {
-                    chunkBox.style.backgroundColor = 'var(--red-500)';
-                    chunkBox.style.color = 'white';
-                }
+            const progressElement = document.getElementById(`progress-${video_id}`);
+            if (!progressElement) return;
+
+            const totalChunks = parseInt(progressElement.dataset.totalChunks, 10);
+            let completedChunks = parseInt(progressElement.dataset.completedChunks, 10);
+
+            if (status === 'complete') {
+                completedChunks++;
+                progressElement.dataset.completedChunks = completedChunks;
             }
 
-            const allChunks = document.querySelectorAll(`[id^=chunk-${video_id}-]`);
-            const completedChunks = document.querySelectorAll(`[id^=chunk-${video_id}-][style*="background-color: var(--green-500)"]`);
-            const percentage = (completedChunks.length / allChunks.length) * 100;
+            const percentage = totalChunks > 0 ? (completedChunks / totalChunks) * 100 : 0;
             const progressBar = document.getElementById(`progress-bar-${video_id}`);
             progressBar.style.width = `${percentage}%`;
 
+            const statusText = document.getElementById(`status-text-${video_id}`);
             if (percentage === 100) {
-                const statusText = document.getElementById(`status-text-${video_id}`);
                 statusText.textContent = 'Finalizing...';
+            } else {
+                statusText.textContent = `Uploading... ${Math.round(percentage)}%`;
             }
         }
 
@@ -592,6 +419,140 @@
                 }
                 clearInterval(activeUploads[video_id]);
                 delete activeUploads[video_id];
+            }
+        }
+
+        async function fetchAndDisplayVideos() {
+            const videosContainer = document.getElementById('videos-container');
+            const noVideosMessage = document.getElementById('no-videos-message');
+
+            try {
+                const response = await fetch('/api/videos');
+                const data = await response.json();
+
+                // Clear existing content
+                videosContainer.innerHTML = '';
+
+                if (data.videos && data.videos.length > 0) {
+                    noVideosMessage.style.display = 'none';
+
+                    data.videos.forEach(video => {
+                        const videoElement = document.createElement('div');
+                        videoElement.className = 'bg-[var(--background-color)] rounded-lg overflow-hidden group border border-[var(--accent-color)] hover:border-[var(--primary-color)] transition-all duration-300 hover:shadow-2xl hover:scale-[1.02]';
+                        videoElement.innerHTML = `
+                            <div class="relative aspect-video bg-[var(--accent-color)]">
+                                <img alt="Video thumbnail" class="object-cover w-full h-full"
+                                    src="${video.thumbnailUrl}" />
+                                <div
+                                    class="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <button class="text-[var(--primary-color)] icon-glow">
+                                        <svg class="w-12 h-12" fill="currentColor" viewBox="0 0 20 20"
+                                            xmlns="http://www.w3.org/2000/svg">
+                                            <path clip-rule="evenodd"
+                                                d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z"
+                                                fill-rule="evenodd"></path>
+                                        </svg>
+                                    </button>
+                                </div>
+                                <span
+                                    class="absolute bottom-2 right-2 bg-black/70 text-white text-xs px-1.5 py-0.5 rounded">${video.duration}</span>
+                            </div>
+                            <div class="p-4">
+                                <h3 class="text-md font-semibold text-[var(--text-primary)] truncate"
+                                    title="${video.title}">${video.title}</h3>
+                                <p class="text-xs text-[var(--text-secondary)]">Uploaded: ${new Date(video.uploadDate).toLocaleString()}</p>
+                                <div class="flex justify-between items-center mt-2">
+                                    <span
+                                        class="text-xs bg-[var(--primary-color)]/20 text-[var(--primary-color)] px-2 py-0.5 rounded-full">${video.resolution}</span>
+                                    <div class="flex space-x-2">
+                                        <button
+                                            class="text-[var(--text-secondary)] hover:text-[var(--primary-color)] transition-colors">
+                                            <svg fill="currentColor" height="16" viewBox="0 0 16 16" width="16"
+                                                xmlns="http://www.w3.org/2000/svg">
+                                                <path
+                                                    d="M15.502 1.94a.5.5 0 0 1 0 .706L14.459 3.69l-2-2L13.502.646a.5.5 0 0 1 .707 0l1.293 1.293zm-1.75 2.456-2-2L4.939 9.21a.5.5 0 0 0-.121.196l-.805 2.414a.25.25 0 0 0 .316.316l2.414-.805a.5.5 0 0 0 .196-.12l6.813-6.814z">
+                                                </path>
+                                                <path
+                                                    d="M1 13.5A1.5 1.5 0 0 0 2.5 15h11a1.5 1.5 0 0 0 1.5-1.5v-6a.5.5 0 0 0-1 0v6a.5.5 0 0 1-.5.5h-11a.5.5 0 0 1-.5-.5v-11a.5.5 0 0 1 .5-.5H9a.5.5 0 0 0 0-1H2.5A1.5 1.5 0 0 0 1 2.5v11z"
+                                                    fill-rule="evenodd"></path>
+                                            </svg>
+                                        </button>
+                                        <button
+                                            class="text-[var(--text-secondary)] hover:text-red-500 transition-colors">
+                                            <svg fill="currentColor" height="16" viewBox="0 0 16 16" width="16"
+                                                xmlns="http://www.w3.org/2000/svg">
+                                                <path
+                                                    d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V6z">
+                                                </path>
+                                                <path
+                                                    d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1v1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4H4.118zM2.5 3V2h11v1h-11z"
+                                                    fill-rule="evenodd"></path>
+                                            </svg>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                        videosContainer.appendChild(videoElement);
+                    });
+                } else {
+                    noVideosMessage.style.display = 'block';
+                }
+            } catch (error) {
+                console.error('Error fetching videos:', error);
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', fetchVideos);
+
+        async function fetchVideos() {
+            try {
+                const response = await fetch('/api/videos');
+                if (!response.ok) {
+                    throw new Error('Failed to fetch videos');
+                }
+                const videos = await response.json();
+                const videosContainer = document.getElementById('videos-container');
+                const noVideosMessage = document.getElementById('no-videos-message');
+
+                if (videos.length === 0) {
+                    noVideosMessage.style.display = 'block';
+                    videosContainer.innerHTML = ''; // Clear any existing content
+                    videosContainer.appendChild(noVideosMessage);
+                } else {
+                    noVideosMessage.style.display = 'none';
+                    videosContainer.innerHTML = ''; // Clear previous content
+                    videos.forEach(video => {
+                        const videoElement = document.createElement('div');
+                        videoElement.className = 'bg-[var(--background-color)] rounded-lg overflow-hidden group border border-[var(--accent-color)] hover:border-[var(--primary-color)] transition-all duration-300 hover:shadow-2xl hover:scale-[1.02]';
+
+                        const presets = video.presets.join(', ');
+
+                        videoElement.innerHTML = `
+                            <div class="relative aspect-video bg-[var(--accent-color)]">
+                                <img alt="Video thumbnail" class="object-cover w-full h-full" src="${video.thumbnail_url}" />
+                                <div class="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <button class="text-[var(--primary-color)] icon-glow">
+                                        <svg class="w-12 h-12" fill="currentColor" viewBox="0 0 20 20"
+                                            xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd"></path></svg>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="p-4">
+                                <h3 class="text-md font-semibold text-[var(--text-primary)] truncate" title="${video.base_name}">${video.base_name}</h3>
+                                <p class="text-xs text-[var(--text-secondary)]">Uploaded: ${new Date(video.uploaded_at).toLocaleDateString()}</p>
+                                <div class="flex justify-between items-center mt-2">
+                                    <span class="text-xs bg-[var(--primary-color)]/20 text-[var(--primary-color)] px-2 py-0.5 rounded-full">${presets}</span>
+                                </div>
+                            </div>
+                        `;
+                        videosContainer.appendChild(videoElement);
+                    });
+                }
+            } catch (error) {
+                console.error('Error fetching videos:', error);
+                const videosContainer = document.getElementById('videos-container');
+                videosContainer.innerHTML = `<div class="col-span-full text-center text-red-400 text-sm py-8">Error loading videos. Please try again later.</div>`;
             }
         }
     </script>
