@@ -17,7 +17,10 @@ RUN curl -L https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-amd64-stati
     rm -rf /tmp/*
 
 # Copy your application code into the Lambda task root
+COPY src/transcoder/requirements.txt ${LAMBDA_TASK_ROOT}/
+RUN pip install -r ${LAMBDA_TASK_ROOT}/requirements.txt -t ${LAMBDA_TASK_ROOT}
 COPY src/transcoder/app.py ${LAMBDA_TASK_ROOT}/app.py
+COPY src/transcoder/templates ${LAMBDA_TASK_ROOT}/templates/
 
 # Set the Lambda handler
 CMD ["app.lambda_handler"]

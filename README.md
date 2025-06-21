@@ -2,345 +2,151 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-🔥 A serverless AWS Lambda solution for on-the-fly video transcoding, transcription, and adaptive streaming (HLS & DASH).
+🔥 A serverless AWS Lambda solution for on-the-fly video transcoding, transcription, and adaptive streaming (HLS & DASH), with a simple Flask-based frontend for uploads.
 
-This project provides a robust and scalable way to process video files uploaded to an S3 bucket. When a video is uploaded, a Lambda function is triggered to:
-1.  **Probe Video:** Determine resolution and other metadata.
-2.  **Transcode to Multiple Resolutions:** Create different quality levels suitable for adaptive bitrate streaming (e.g., 1080p, 720p, 480p).
-3.  **Generate HLS & DASH Playlists:** Create manifest files for Apple HLS and MPEG-DASH streaming.
-4.  **Create Sprite Sheet:** Generate a thumbnail sprite sheet for video scrubbing previews.
-5.  **Transcribe Audio:** Use Amazon Transcribe to generate a text transcription of the video's audio.
-6.  **Stream Content (Optional):** A secondary Lambda handler can be exposed via API Gateway to serve the transcoded video segments and playlists directly from S3, enabling byte-range requests for efficient streaming.
+This project provides a robust and scalable way to process video files. It includes:
+1.  **S3 Event Trigger:** A Lambda function is triggered when a video is uploaded to an S3 bucket.
+2.  **Video Processing:**
+    *   **Probe Video:** Determines resolution and metadata.
+    *   **Transcode to Multiple Resolutions:** Creates different quality levels for adaptive bitrate streaming.
+    *   **Generate HLS & DASH Playlists:** Creates manifest files for Apple HLS and MPEG-DASH.
+    *   **Create Dynamic Sprite Sheet:** Generates a thumbnail sprite sheet for video scrubbing previews.
+    *   **Transcribe Audio:** Uses Amazon Transcribe to generate a text transcription.
+3.  **Flask Web Interface:**
+    *   A simple web page to upload videos directly to S3.
+    *   A status page to check the transcoding progress.
+    *   A streaming endpoint to serve the transcoded content.
+4.  **API Gateway Integration:** The Flask app is served via API Gateway, allowing public access.
 
 ## Features
--   **Serverless Architecture:** Leverages AWS Lambda for compute, S3 for storage, and Amazon Transcribe for audio-to-text.
--   **Adaptive Bitrate Streaming:** Outputs HLS and DASH formats for wide compatibility across devices.
+-   **Serverless Architecture:** Leverages AWS Lambda, S3, and Amazon Transcribe.
+-   **Flask Frontend:** Easy-to-use web interface for video uploads and status checks.
+-   **Adaptive Bitrate Streaming:** Outputs HLS and DASH formats.
 -   **Automated Transcription:** Integrates with Amazon Transcribe.
--   **Thumbnail Sprite Generation:** For enhanced video player UIs.
--   **Multiple Deployment Options:** Supports both traditional .zip deployment with Lambda Layers and Docker container image deployment.
--   **Customizable Presets:** Easily configure video output resolutions and bitrates.
+-   **Dynamic Thumbnail Sprite Generation:** Creates a sprite sheet based on video duration.
+-   **Docker-based Deployment:** Simplified deployment using a container image.
 
 ## Project Structure
 ```
 .
-├── Dockerfile                # For Docker-based Lambda deployment
-├── LICENSE                   # Project License
-├── README.md                 # This file
-├── requirements.txt          # Root Python dependencies (if any, for local dev)
+├── Dockerfile
+├── LICENSE
+├── README.md
+├── requirements.txt
 ├── events/
-│   └── basic.json            # Sample event for local testing
+│   └── basic.json
 ├── src/
 │   └── transcoder/
 │       ├── __init__.py
-│       ├── app.py            # Core Lambda function logic
-│       └── requirements.txt  # Dependencies for the Lambda function
+│       ├── app.py              # Core Lambda function logic with Flask app
+│       ├── requirements.txt    # Dependencies for the Lambda function
+│       └── templates/
+│           └── index.html      # HTML for the upload frontend
 └── tests/
-    ├── __init__.py
-    └── test_handler.py       # Unit tests (example)
+    └── ...
 ```
 
 ## Prerequisites
 -   AWS Account
 -   AWS CLI installed and configured
--   Docker installed (for Docker-based deployment)
--   Python 3.9+ (for local development and .zip deployment)
--   Access to static builds of FFmpeg and ffprobe (for .zip/Layer deployment, or can be downloaded in Dockerfile)
+-   Docker installed
+-   An S3 bucket to store uploads and transcoded files.
 
-## Deployment Options 🚀
+## Deployment Guide 🚀
 
-You can deploy this application to AWS Lambda using either a traditional .zip archive with Lambda Layers or by using a Docker container image.
+This project is designed for deployment as a Docker container image to AWS Lambda.
 
-## Option 1: Deployment using .zip archive and Lambda Layers
+**1. Configure Environment Variables:**
+   - Before building the Docker image, you need to set the `BUCKET_NAME` environment variable. This can be done in a few ways:
+     - **Option A (Hardcode in Dockerfile - for quick tests):**
+       ```dockerfile
+       # In your Dockerfile, before the CMD
+       ENV BUCKET_NAME='your-s3-bucket-name'
+       ```
+     - **Option B (Set in Lambda Console - Recommended):** You will set this in the Lambda function's configuration after deployment. This is the most flexible and secure method.
 
-This is the traditional method for deploying Lambda functions.
+**2. Review the Dockerfile:**
+   - The `Dockerfile` handles all the necessary steps:
+     - Starts from the official AWS Lambda Python base image.
+     - Installs FFmpeg.
+     - Copies `requirements.txt` and installs Python packages (including Flask and serverless-wsgi).
+     - Copies the `app.py` and the `templates` directory.
+     - Sets the `CMD` to `app.lambda_handler`.
 
-**1. Prepare Lambda Layer for ffmpeg/ffprobe:**
-   - Download static builds of `ffmpeg` and `ffprobe` compatible with the Lambda runtime's Amazon Linux version (e.g., Amazon Linux 2 for Python 3.9/3.11). A common source is [John Van Sickle's FFmpeg builds](https://johnvansickle.com/ffmpeg/).
-   - Create the following folder structure:
-     ```
-     python/
-         bin/
-             ffmpeg
-             ffprobe
-     ```
-   - Ensure `ffmpeg` and `ffprobe` are executable (`chmod +x ffmpeg ffprobe`).
-   - Zip the `python` folder (e.g., `ffmpeg-layer.zip`).
-   - In the AWS Lambda console, create a new Layer and upload `ffmpeg-layer.zip`. Note the Layer ARN.
-
-**2. Package Your Application Code:**
-   - Your application code is in `src/transcoder/app.py`.
-   - If you have Python dependencies beyond `boto3` (which is included in the Lambda Python runtime), as listed in `src/transcoder/requirements.txt`, install them into a package directory:
+**3. Build and Push Docker Image to Amazon ECR:**
+   - **Create ECR Repository:**
      ```bash
-     pip install -r src/transcoder/requirements.txt -t ./package 
+     aws ecr create-repository --repository-name lambda-video-transcoder --image-scanning-configuration scanOnPush=true --region your-aws-region
      ```
-   - Create a .zip file containing your `app.py` (copied from `src/transcoder/`) and the contents of the `package` directory. `app.py` should be at the root of the .zip file.
-     ```bash
-     cp src/transcoder/app.py ./app.py # Copy app.py to root for zipping
-     # If you have a package directory
-     zip -r lambda_function.zip app.py ./package
-     # If you only have app.py (and boto3 is sufficient)
-     # zip lambda_function.zip app.py
-     rm app.py # Clean up copied file
-     ```
-     Ensure `app.py` is at the root of the zip. If you copied `app.py` into `src/transcoder/` within the zip, the handler path will need to reflect that. For simplicity, it's often easier to ensure `app.py` is at the root.
-
-**3. Create Lambda Function (Zip file):**
-   - In the AWS Lambda Console, click **"Create function"**.
-   - Choose **"Author from scratch"**.
-   - **Function name:** Enter a descriptive name.
-   - **Runtime:** Select a Python version (e.g., Python 3.11 or as supported).
-   - **Architecture:** Choose `x86_64` or `arm64` based on your ffmpeg build and preference.
-   - **Permissions:** Create a new execution role with basic Lambda permissions, or choose an existing one. This role will be modified later.
-   - Click **"Create function"**.
-   - **Upload code:** In the "Code source" section, upload your `lambda_function.zip`.
-   - **Handler:** Set the handler to `app.lambda_handler` (assuming `app.py` is at the root of your zip and named `app.py`).
-   - **Layers:** Add the ffmpeg/ffprobe Lambda Layer you created in step 1.
-
-## Option 2: Deployment using Docker Container Image
-
-This method packages your application and dependencies, including FFmpeg, into a Docker image.
-
-**1. Review/Update Dockerfile:**
-   - The provided `Dockerfile` in the repository is a good starting point.
-     ```dockerfile
-     # Use the AWS Lambda Python 3.13 base image (Amazon Linux 2023)
-     FROM public.ecr.aws/lambda/python:3.13
-
-     # Install dependencies via microdnf (if any beyond base image + ffmpeg)
-     RUN microdnf update -y && \
-         microdnf install -y tar xz && \
-         microdnf clean all
-
-     # Download static build of FFmpeg
-     RUN curl -L https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-amd64-static.tar.xz \
-          -o /tmp/ffmpeg.tar.xz && \
-         tar -xJf /tmp/ffmpeg.tar.xz -C /tmp && \
-         mkdir -p /opt/bin && \
-         cp /tmp/ffmpeg-*-static/ffmpeg /opt/bin/ && \
-         cp /tmp/ffmpeg-*-static/ffprobe /opt/bin/ && \
-         chmod +x /opt/bin/ffmpeg /opt/bin/ffprobe && \
-         rm -rf /tmp/*
-
-     # Copy application code and any other necessary files
-     # If you have a requirements.txt specific to the transcoder (src/transcoder/requirements.txt):
-     COPY src/transcoder/requirements.txt ${LAMBDA_TASK_ROOT}/requirements.txt
-     RUN pip install -r ${LAMBDA_TASK_ROOT}/requirements.txt -t ${LAMBDA_TASK_ROOT}
-     
-     COPY src/transcoder/app.py ${LAMBDA_TASK_ROOT}/app.py
-     # Ensure your app.py uses /opt/bin/ffmpeg and /opt/bin/ffprobe
-
-     # Set the Lambda handler (filename.handler_function)
-     CMD ["app.lambda_handler"]
-     ```
-   - Ensure the `FFMPEG` and `FFPROBE` paths in `src/transcoder/app.py` are correctly set to `/opt/bin/ffmpeg` and `/opt/bin/ffprobe` respectively (this is done by default in the current `app.py`).
-   - If `src/transcoder/requirements.txt` exists and contains dependencies beyond `boto3`, uncomment and adjust the `COPY` and `RUN pip install` lines in the `Dockerfile`.
-
-**2. Build and Push Docker Image to Amazon ECR:**
-   - **Install AWS CLI and Docker:** Ensure they are installed and configured locally.
-   - **Create ECR Repository (if it doesn't exist):**
-     ```bash
-     aws ecr create-repository --repository-name your-lambda-repo-name --image-scanning-configuration scanOnPush=true --region your-aws-region
-     ```
-     Replace `your-lambda-repo-name` and `your-aws-region`.
-   - **Authenticate Docker to your ECR registry:**
+   - **Authenticate Docker to ECR:**
      ```bash
      aws ecr get-login-password --region your-aws-region | docker login --username AWS --password-stdin YOUR_AWS_ACCOUNT_ID.dkr.ecr.your-aws-region.amazonaws.com
      ```
-     Replace `your-aws-region` and `YOUR_AWS_ACCOUNT_ID`.
-   - **Build Docker Image:** Navigate to the root directory of your project (where `Dockerfile` is located) and run:
+   - **Build, Tag, and Push the Image:**
      ```bash
-     docker build -t your-lambda-repo-name .
-     ```
-   - **Tag Docker Image for ECR:**
-     ```bash
-     docker tag your-lambda-repo-name:latest YOUR_AWS_ACCOUNT_ID.dkr.ecr.your-aws-region.amazonaws.com/your-lambda-repo-name:latest
-     ```
-   - **Push Docker Image to ECR:**
-     ```bash
-     docker push YOUR_AWS_ACCOUNT_ID.dkr.ecr.your-aws-region.amazonaws.com/your-lambda-repo-name:latest
+     docker build -t lambda-video-transcoder .
+     docker tag lambda-video-transcoder:latest YOUR_AWS_ACCOUNT_ID.dkr.ecr.your-aws-region.amazonaws.com/lambda-video-transcoder:latest
+     docker push YOUR_AWS_ACCOUNT_ID.dkr.ecr.your-aws-region.amazonaws.com/lambda-video-transcoder:latest
      ```
 
-**3. Create Lambda Function (Container Image):**
+**4. Create and Configure the Lambda Function:**
    - In the AWS Lambda Console, click **"Create function"**.
    - Select **"Container image"**.
-   - **Function name:** Enter a descriptive name.
-   - **Container image URI:** Click **"Browse images"** and select the image you pushed to ECR (e.g., `your-lambda-repo-name:latest`).
-   - **Architecture:** Choose `x86_64` (matching the ffmpeg build in the Dockerfile).
-   - **Permissions:** Create a new execution role or choose an existing one. This role will be modified.
+   - **Function name:** `lambda-video-transcoder`.
+   - **Container image URI:** Browse and select the `lambda-video-transcoder:latest` image from ECR.
+   - **Architecture:** `x86_64`.
+   - **Permissions:** Create a new execution role. You will attach the necessary policies to this role.
    - Click **"Create function"**.
 
-## Common Configuration Steps (for both deployment options)
+**5. Configure IAM Permissions:**
+   - Go to the IAM console and find the execution role for your Lambda function.
+   - Attach the following managed policies or create more restrictive inline policies:
+     - `AWSLambdaBasicExecutionRole` (should be attached by default)
+     - `AmazonS3FullAccess` (or a policy granting `s3:GetObject`, `s3:PutObject`, `s3:ListBucket` on your specific bucket).
+     - `AmazonTranscribeFullAccess` (or a policy granting `transcribe:StartTranscriptionJob`).
 
-**1. IAM Permissions:**
-   - Go to the IAM console and find the execution role associated with your Lambda function.
-   - Attach policies that grant the following permissions:
-     - **AmazonS3FullAccess** (or a more restrictive policy granting `s3:GetObject` on the source bucket and `s3:PutObject` on the destination bucket/prefix).
-       Example inline policy for S3:
-       ```json
-       {
-           "Version": "2012-10-17",
-           "Statement": [
-               {
-                   "Effect": "Allow",
-                   "Action": [
-                       "s3:GetObject"
-                   ],
-                   "Resource": "arn:aws:s3:::YOUR_SOURCE_BUCKET_NAME/*"
-               },
-               {
-                   "Effect": "Allow",
-                   "Action": [
-                       "s3:PutObject",
-                       "s3:PutObjectAcl" // Optional, if you need to set ACLs
-                   ],
-                   "Resource": "arn:aws:s3:::YOUR_DESTINATION_BUCKET_NAME/*" 
-               }
-           ]
-       }
-       ```
-       Replace `YOUR_SOURCE_BUCKET_NAME` and `YOUR_DESTINATION_BUCKET_NAME`. The `processed/` prefix is handled by the application logic.
-     - **AmazonTranscribeFullAccess** (or a more restrictive policy granting `transcribe:StartTranscriptionJob`).
-       Example inline policy for Transcribe:
-       ```json
-       {
-           "Version": "2012-10-17",
-           "Statement": [
-               {
-                   "Effect": "Allow",
-                   "Action": "transcribe:StartTranscriptionJob",
-                   "Resource": "*"
-               }
-           ]
-       }
-       ```
-     - **AWSLambdaBasicExecutionRole** (usually added by default): Allows writing logs to CloudWatch (`logs:CreateLogGroup`, `logs:CreateLogStream`, `logs:PutLogEvents`).
-
-**2. Lambda Function Configuration:**
-   - In the Lambda function console, navigate to the **"Configuration"** tab.
+**6. Configure Lambda Settings and Triggers:**
+   - In the Lambda function console, go to the **"Configuration"** tab.
+   - **Environment variables:**
+     - Click **"Edit"** and add a new variable:
+       - **Key:** `BUCKET_NAME`
+       - **Value:** `your-s3-bucket-name` (the name of your S3 bucket)
    - **General configuration:**
-     - **Memory:** Increase memory. Video processing is memory-intensive. Start with **2048 MB** or **4096 MB** and monitor/adjust based on execution logs and performance.
-     - **Ephemeral storage (for container images):** If using container image deployment, you can increase ephemeral storage beyond the default 512MB if your FFmpeg processes require more temporary disk space (up to 10 GB). For .zip deployments, `/tmp` is limited to 512MB.
-     - **Timeout:** Increase the timeout. Video processing can be slow. Start with **5 minutes** (300 seconds) or up to the maximum of **15 minutes** (900 seconds). Monitor and adjust.
-   - **Environment Variables (Optional):**
-     - `LANGUAGE_CODE`: Defaults to "en-US" in `app.py`. You can override it here if needed for other languages supported by Amazon Transcribe.
-     - Any other custom environment variables your application might need.
+     - **Memory:** Increase to at least **2048 MB**.
+     - **Timeout:** Increase to **15 minutes** (900 seconds).
+   - **Triggers:**
+     - **API Gateway Trigger (for the Flask App):**
+       - Click **"Add trigger"**, select **"API Gateway"**.
+       - Choose **"Create an API"**, select **"HTTP API"**, and **"Open"** security.
+       - Note the **API endpoint URL**.
+     - **S3 Trigger (for Video Processing):**
+       - Click **"Add trigger"**, select **"S3"**.
+       - **Bucket:** Select your S3 bucket (`your-s3-bucket-name`).
+       - **Event types:** `All object create events`.
+       - **Prefix:** `uploads/`
+       - Acknowledge the warning and click **"Add"**.
 
-**3. Triggers:**
+## How to Use
 
-   **A. S3 Trigger (for `process_video` function):**
-   - In the Lambda console for your function, go to **"Function overview"** and click **"Add trigger"**.
-   - Select **"S3"**.
-   - **Bucket:** Choose the S3 bucket where raw videos will be uploaded.
-   - **Event type:** Select **"All object create events"** or be more specific (e.g., `PUT`, `POST`, `CompleteMultipartUpload`).
-   - **Prefix (Optional):** If you want the Lambda to trigger only for uploads to a specific folder (e.g., `uploads/`).
-   - **Suffix (Optional):** If you want to trigger only for specific file types (e.g., `.mp4`).
-   - Acknowledge the recursive invocation warning if your Lambda writes back to the same bucket (though this app writes to a `processed/` prefix, which should avoid direct recursion if the trigger is on the root or a different prefix).
-   - Click **"Add"**.
+1.  **Open the Web Frontend:**
+    - Navigate to the **API endpoint URL** you received when creating the API Gateway trigger.
+2.  **Upload a Video:**
+    - Use the form to select and upload a video file.
+    - Upon successful upload, you will be redirected to a status page.
+3.  **Processing:**
+    - The upload triggers the S3 event, which invokes the same Lambda function to run the `process_video` logic.
+    - This will transcode the video, create playlists, generate the sprite sheet, and start the transcription job.
+4.  **Check Status:**
+    - The status page will eventually show "Transcoding complete!" once the main HLS playlist is available.
+5.  **Accessing Transcoded Content:**
+    - The transcoded files are stored in your S3 bucket under the `processed/` prefix.
+    - The Flask app also provides a `/stream/` endpoint that can serve these files, which can be used by a video player.
 
-   **B. API Gateway Trigger (for `stream_handler` function):**
-   - This allows HTTP(S) access to serve the HLS/DASH manifests and video segments.
-   - In the Lambda console for your function, go to **"Function overview"** and click **"Add trigger"**.
-   - Select **"API Gateway"**.
-   - Choose **"Create an API"**.
-   - Select **"HTTP API"** (recommended for simplicity and cost) or REST API.
-   - **Security:** For initial testing, **"Open"** is fine. For production, implement appropriate authorization (e.g., IAM, Lambda authorizer, API Key).
-   - **API name, Deployment stage:** Configure as needed.
-   - **Route:** The `stream_handler` expects `bucket` and `key` as query string parameters. A common route might be `/stream` or `/videos/{proxy+}`. You will need to ensure the integration passes query parameters.
-   - Click **"Add"**. Note the **API endpoint URL** provided after creation. This URL will be used to access your video streams.
-
-## Testing
-
-**1. Testing `process_video` (S3 Trigger):**
-   - Upload a video file (e.g., an MP4) to the S3 bucket and prefix you configured as the trigger.
-   - Monitor the Lambda function's execution in Amazon CloudWatch Logs.
-   - Check your destination S3 bucket (and the `processed/` prefix) for the output HLS files, DASH files, `sprite.png`, and the transcription JSON.
-
-**2. Testing `stream_handler` (API Gateway Trigger):**
-   - Once `process_video` has successfully run, you can test the streaming.
-   - Construct the URL using your API Gateway endpoint and the S3 key for a manifest or segment.
-     - Example for HLS master playlist (replace placeholders):
-       `YOUR_API_ENDPOINT/stream?bucket=YOUR_S3_BUCKET_NAME&key=processed/YOUR_VIDEO_BASENAME/hls/master.m3u8`
-     - Example for a video segment (replace placeholders):
-       `YOUR_API_ENDPOINT/stream?bucket=YOUR_S3_BUCKET_NAME&key=processed/YOUR_VIDEO_BASENAME/hls/720p/seg_000_720p.ts`
-   - You can use a tool like `curl`, a web browser, or an HLS/DASH test player (like VLC or online players) to access these URLs.
-   - Check CloudWatch Logs for the API Gateway and Lambda function if you encounter issues.
-
-## Important Notes:
-- **FFmpeg Static Builds:** Ensure the FFmpeg static build used (either in Layer or Docker) is compatible with the Lambda execution environment (Amazon Linux 2 for older Python runtimes, Amazon Linux 2023 for `public.ecr.aws/lambda/python:3.13` base image). The `Dockerfile` downloads a common amd64 static build.
-- **Costs:** Be mindful of AWS costs: S3 (storage, requests, data transfer), Lambda (invocations, duration, memory), ECR (storage), API Gateway (requests, data transfer), and Amazon Transcribe (transcription minutes).
-- **Error Handling & Logging:** The provided code has basic error handling. For production, implement more robust error handling, use structured logging, and consider setting up Dead-Letter Queues (DLQs) for your Lambda function to handle failed invocations.
-- **Large Files & Long Processing:** For very large video files or extremely long processing times, Lambda's 15-minute timeout or /tmp storage limits (512MB for .zip, configurable up to 10GB for containers) might be insufficient. In such scenarios, consider AWS Batch for asynchronous, long-running jobs or AWS Elemental MediaConvert for a managed media conversion service.
-- **Idempotency:** Consider if parts of your workflow need to be idempotent, especially if retries occur.
-- **Security:**
-    - Adhere to the principle of least privilege for IAM roles. Grant only the necessary permissions.
-    - Secure your API Gateway endpoint using appropriate authentication and authorization mechanisms for production.
-    - Regularly update dependencies, including the base Docker image and FFmpeg.
-
-## Local Development & Testing (Conceptual)
-
-While full end-to-end testing requires AWS services, you can test parts of the `app.py` logic locally:
-
-1.  **Setup:**
-    *   Ensure Python 3.9+ is installed.
-    *   Install dependencies: `pip install -r src/transcoder/requirements.txt boto3 moto` (Moto is for mocking AWS services).
-    *   Have FFmpeg and ffprobe installed locally and accessible in your PATH, or adjust `FFMPEG`/`FFPROBE` paths in `app.py` for local testing.
-2.  **Mocking AWS Services:**
-    *   Use `moto` to mock S3 and Transcribe calls during local unit tests.
-3.  **Sample Event:**
-    *   Use `events/basic.json` (you might need to create/modify this to represent an S3 event) to simulate a Lambda invocation.
-    *   Example `events/basic.json` for S3 trigger:
-        ```json
-        {
-          "Records": [
-            {
-              "s3": {
-                "bucket": {
-                  "name": "your-local-test-bucket"
-                },
-                "object": {
-                  "key": "sample.mp4"
-                }
-              }
-            }
-          ]
-        }
-        ```
-4.  **Running `app.lambda_handler`:**
-    *   Write a small Python script to load the event and call `app.lambda_handler(event, None)`.
-
-```python
-# Example local_runner.py (place in project root)
-import json
-import sys
-sys.path.append('src/transcoder') # Add app module to path
-from app import lambda_handler
-
-if __name__ == '__main__':
-    with open('events/basic.json', 'r') as f:
-        event = json.load(f)
-    
-    # --- Setup for local testing ---
-    # 1. Create a dummy sample.mp4 or use a small test video.
-    # 2. Manually create ./temp_s3_bucket/sample.mp4 if your code expects to download it.
-    #    OR modify app.py to use a local file path directly for tmp_in for local testing.
-    # 3. FFmpeg/ffprobe must be in PATH or paths in app.py adjusted.
-    #
-    # This local run won't interact with actual S3/Transcribe unless you configure
-    # boto3 with real credentials and endpoints, or use moto for mocking.
-    # For true local simulation of S3, tools like localstack can be used.
-    
-    print("Simulating Lambda invocation locally...")
-    result = lambda_handler(event, None)
-    print("\nLambda Output:")
-    print(json.dumps(result, indent=2))
-
-```
-This local setup is primarily for unit/integration testing of Python logic, not for testing FFmpeg processing in the exact Lambda environment. For that, deploying to AWS is necessary.
-
-## Contributing
-Pull requests are welcome! For major changes, please open an issue first to discuss what you would like to change.
-Please make sure to update tests as appropriate.
+## Important Notes
+- **Costs:** Be mindful of AWS costs for S3, Lambda, ECR, API Gateway, and Amazon Transcribe.
+- **Error Handling:** For production, consider adding more robust error handling and a dead-letter queue (DLQ) for the Lambda function.
+- **Large Files:** For files larger than a few hundred MBs, consider using S3 presigned URLs for direct browser uploads to avoid passing the file through the Lambda function's memory.
+- **Security:** For production, secure your API Gateway endpoint and use more restrictive IAM policies.
 
 ## License
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
