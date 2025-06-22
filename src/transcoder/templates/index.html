@@ -7,6 +7,9 @@
         href="https://fonts.googleapis.com/css2?display=swap&amp;family=Noto+Sans%3Awght%40400%3B500%3B700%3B900&amp;family=Space+Grotesk%3Awght%40400%3B500%3B700"
         onload="this.rel='stylesheet'" rel="stylesheet" />
     <title>Lambda Video Transcoder</title>
+    <link rel="icon"
+        href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADAAAAAwCAYAAABXAvmHAAAAAXNSR0IArs4c6QAABWVJREFUaEPtWX+IVUUU/s7dp7b77p2rhhtpIRFYKZFZkIZYUv6RSEIQKpFGtf/0G/tpuu/OfbtaRmSQRYQRVtJiCYZYUSaSoGJGBLIlUQhZbBq5b+68XaPdd/KZu+y77/6Yt+4+Ebz/zjnfd745c+bOnCFc4B9d4PHjooDznUGjDGRz3QvIoucBmsXAdsB6sSjtrqTg7VzgweIWAvoYtElLpz3JvnF1z5RMpm8dA4tBfIhLDS8V8/bXaROUKsDJqVVMWBcC6mz4pzS38PL4k1EEtqe2Arh36BgB7we+WBFpvyqYhHG8H4yrh44z88pi3t2QJCJRQJPsvtli69sYgN3aF3eEx7KeWk/Ac5E+TGt03lkbHrNlcAjMN0X6EF2vpXM4TkSiANsrfA/QzDhnJr6/KN0PB8bt1mAGLI4lK9v1U+bKXtl0bMAnKwtPEVP8LBP2ainm1SzAkWoRM3YkrkHCz1qKaYMCZKEDTEuS1y1v1L77+KCPp/4E0Jy4TEqYF7SJvVE2sRmwpdoHxpy0IgLRfC2dPXZ5HY/l46n2gNbKacYG6rVlsBTMH6X5MGFnUYpFxgKaZHGyxf2/pwGfHd+kfdGSzRWeJKLXzXxoifadrY6ndjKwMNWHwGN6+yacXD+xELaNzIAtC4+B6Y1U4P8N/tK+02x7wW4Atxv5EG3RBbvFFkE3gLGGPsu0dDqMBDhSfcaMu4yAAVglnl2y6ICpPYDjTLyCmD439SHC5kCKB4wE2J4qz4xrCg6ij8C8zNj+jCF3ALTU2IdwREtxbaqAS1afnJrJNBw1Bq6joSadhZzcM5SyqgZsGdwD5m11jMuYikq4NWgT+9MErAFzmzFqHQ2J8XCQF+8mCshKtYkYD9UxrhqoOK9910vLwJdgXlADat1MmfBeUYoHUwSon8C4pm5R1UTEu7TvVkxuRBGr42BMqgm3XsaEH7QUFYfLagGeKv+uRb1iqpHnV+2LijtDVAZOgTGuRuD6mBNOaCkqTq5RGeD6RDMsllPaF43JReypfwFkhgU/+k592hdj0nYhBYYz+rEMi0FpX1Sc0aKWUOoNaVjUI+PUpX1xeWIGHKmOMmPqyPCNOIrBLuQF3wE8a8SpRwDw9O3tYNEXt6TVwHYwFo8A32hAfKJ9Ee43VfLYsrARTI+OBvu5YhLwWuCLp5NrIKeeZcIr50o2Kv7MT+i8W3FXr9qFjPpBoxJdOiizdWe4X1oloNxkbcj0DXbO0mHrZ2ERX6qk+3fiEioP2p4qN23HG4dGtAXM9xnblw1r9GHgaNEXV4U5IvtCWU/tICCyExYVZPmuWrLwFQFZIxGEgBgLGYhsF0ZjcIf23arOR0xjK3gEzG8aBQMo3elMzE4PttcgepvudJbY07UCuMmEh5mXF/PuB0YZaJQ9VzRw328mwAN9fyenWpjwjonPQFc76h0h0r/W1uLZOii3L2anBcRkLShKe5f7QveE/nFWRYHF+PY20qnmE7JZO1LdzYxP0zgI+CLwRWSnMLY77eTUYqbyc1LCF2qvO57azMDy5ID4Le27gz9KW6pjYExJ5qHbtHS+iay/JEdbqsNgzIizCT9wOFJNY8aRJMzwA4ctU+ptuA8c5SCcVjWHLeyLCeiA9kXV+0HiUYS4TUs3F8azPdUJ4LpInn6artudH+MmJfWRz/YKPkBh0q6G/tLcQvv4X8LAlz3TlS1mG/cCdGNobI/2xfyoQLKt+gaySnuq/j0RRwejXShsdPZ4sRKEmaeX1McgatXSiX+NkX80ZWGvIaDcDu9h4O2iFK8mLa0zTeUxmbVgXgSig6evte1x634oTmoG0naI8z1+UcDFDJzjDPwHGd0LT385pSMAAAAASUVORK5CYII="
+        type="image/png" />
     <link href="data:image/x-icon;base64," rel="icon" type="image/x-icon" />
     <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
     <style type="text/tailwindcss">
@@ -127,14 +130,14 @@
                 </div>
                 <section
                     class="mt-6 md:mt-8 bg-[var(--secondary-color)] rounded-xl border border-[var(--accent-color)] p-6">
+                    <h2 class="text-2xl font-bold text-[var(--text-primary)] mb-6">Ongoing Transcoding</h2>
+                    <div id="ongoing-transcoding-container" class="space-y-6"></div>
+                </section>
+                <section
+                    class="mt-6 md:mt-8 bg-[var(--secondary-color)] rounded-xl border border-[var(--accent-color)] p-6">
                     <h2 class="text-2xl font-bold text-[var(--text-primary)] mb-6">My Videos</h2>
                     <div id="videos-container"
                         class="grid grid-cols-1 @[480px]:grid-cols-2 @[1024px]:grid-cols-3 @[1280px]:grid-cols-4 gap-6">
-                        <div id="no-videos-message"
-                            class="col-span-full text-center text-[var(--text-secondary)] text-sm py-8">
-                            No videos found. <a class="text-[var(--primary-color)] hover:underline" href="#">Upload your
-                                first video!</a>
-                        </div>
                     </div>
                 </section>
             </main>
@@ -157,40 +160,40 @@
         </div>
     </div>
     <script>
-        const uploadButton = document.getElementById('upload-button');
-        const dropzoneFileInput = document.getElementById('dropzone-file');
-        const progressContainer = document.getElementById('progress-container');
-        const noTasksMessage = document.getElementById('no-tasks-message');
+        const uploadButton = document.getElementById("upload-button");
+        const dropzoneFileInput = document.getElementById("dropzone-file");
+        const progressContainer = document.getElementById("progress-container");
+        const noTasksMessage = document.getElementById("no-tasks-message");
 
-        const hamburgerButton = document.getElementById('hamburger-button');
-        const mobileMenu = document.getElementById('mobile-menu');
+        const hamburgerButton = document.getElementById("hamburger-button");
+        const mobileMenu = document.getElementById("mobile-menu");
 
         if (hamburgerButton) {
-            hamburgerButton.addEventListener('click', () => {
-                mobileMenu.classList.toggle('hidden');
+            hamburgerButton.addEventListener("click", () => {
+                mobileMenu.classList.toggle("hidden");
             });
         }
 
-        const dropzone = document.getElementById('dropzone');
-        const dropzoneContent = dropzone.querySelector('div');
+        const dropzone = document.getElementById("dropzone");
+        const dropzoneContent = dropzone.querySelector("div");
 
         if (dropzone) {
-            dropzone.addEventListener('click', () => {
+            dropzone.addEventListener("click", () => {
                 dropzoneFileInput.click();
             });
 
-            dropzone.addEventListener('dragover', (e) => {
+            dropzone.addEventListener("dragover", (e) => {
                 e.preventDefault();
-                dropzone.classList.add('border-[var(--primary-color)]', 'bg-[var(--primary-color)]/10');
+                dropzone.classList.add("border-[var(--primary-color)]", "bg-[var(--primary-color)]/10");
             });
 
-            dropzone.addEventListener('dragleave', (e) => {
-                dropzone.classList.remove('border-[var(--primary-color)]', 'bg-[var(--primary-color)]/10');
+            dropzone.addEventListener("dragleave", (e) => {
+                dropzone.classList.remove("border-[var(--primary-color)]", "bg-[var(--primary-color)]/10");
             });
 
-            dropzone.addEventListener('drop', (e) => {
+            dropzone.addEventListener("drop", (e) => {
                 e.preventDefault();
-                dropzone.classList.remove('border-[var(--primary-color)]', 'bg-[var(--primary-color)]/10');
+                dropzone.classList.remove("border-[var(--primary-color)]", "bg-[var(--primary-color)]/10");
                 if (e.dataTransfer.files.length > 0) {
                     dropzoneFileInput.files = e.dataTransfer.files;
                     const fileName = e.dataTransfer.files[0].name;
@@ -203,7 +206,7 @@
             });
         }
 
-        dropzoneFileInput.addEventListener('change', () => {
+        dropzoneFileInput.addEventListener("change", () => {
             if (dropzoneFileInput.files.length > 0) {
                 const fileName = dropzoneFileInput.files[0].name;
                 dropzoneContent.innerHTML = `
@@ -216,10 +219,10 @@
 
         let activeUploads = {};
 
-        uploadButton.addEventListener('click', async () => {
+        uploadButton.addEventListener("click", async () => {
             const file = dropzoneFileInput.files[0];
             if (!file) {
-                alert('Please select a file to upload.');
+                alert("Please select a file to upload.");
                 return;
             }
 
@@ -234,30 +237,29 @@
             let presignedUrls;
 
             try {
-                const createUploadResponse = await fetch('/create_multipart_upload', {
-                    method: 'POST',
+                const createUploadResponse = await fetch("/create_multipart_upload", {
+                    method: "POST",
                     headers: {
-                        'Content-Type': 'application/json'
+                        "Content-Type": "application/json",
                     },
-                    body: JSON.stringify({ fileName: fileName, fileSize: file.size })
+                    body: JSON.stringify({ fileName: fileName, fileSize: file.size }),
                 });
 
                 if (!createUploadResponse.ok) {
-                    throw new Error('Failed to create multipart upload');
+                    throw new Error("Failed to create multipart upload");
                 }
 
                 const uploadData = await createUploadResponse.json();
                 uploadId = uploadData.uploadId;
                 presignedUrls = uploadData.urls;
-
             } catch (error) {
-                console.error('Error creating multipart upload:', error);
-                alert('Error starting upload.');
+                console.error("Error creating multipart upload:", error);
+                alert("Error starting upload.");
                 return;
             }
 
             if (noTasksMessage) {
-                noTasksMessage.style.display = 'none';
+                noTasksMessage.style.display = "none";
             }
             addProgressTracker(fileName, totalChunks);
 
@@ -270,53 +272,51 @@
 
                 try {
                     const uploadResponse = await fetch(presignedUrls[i], {
-                        method: 'PUT',
-                        body: chunk
+                        method: "PUT",
+                        body: chunk,
                     });
 
                     if (!uploadResponse.ok) {
                         throw new Error(`Chunk ${partNumber} upload failed.`);
                     }
 
-                    const etag = uploadResponse.headers.get('ETag');
+                    const etag = uploadResponse.headers.get("ETag");
                     uploadedParts.push({ ETag: etag, PartNumber: partNumber });
-                    updateChunkProgress(fileName, partNumber, 'complete');
-
+                    updateChunkProgress(fileName, partNumber, "complete");
                 } catch (error) {
-                    console.error('Error uploading chunk:', error);
-                    updateChunkProgress(fileName, partNumber, 'failed');
+                    console.error("Error uploading chunk:", error);
+                    updateChunkProgress(fileName, partNumber, "failed");
                     alert(`Error uploading chunk ${partNumber}.`);
                     return; // Stop upload if a chunk fails
                 }
             }
 
             try {
-                const completeUploadResponse = await fetch('/complete_multipart_upload', {
-                    method: 'POST',
+                const completeUploadResponse = await fetch("/complete_multipart_upload", {
+                    method: "POST",
                     headers: {
-                        'Content-Type': 'application/json'
+                        "Content-Type": "application/json",
                     },
-                    body: JSON.stringify({ fileName: fileName, uploadId: uploadId, parts: uploadedParts })
+                    body: JSON.stringify({ fileName: fileName, uploadId: uploadId, parts: uploadedParts }),
                 });
 
                 if (!completeUploadResponse.ok) {
-                    throw new Error('Failed to complete multipart upload');
+                    throw new Error("Failed to complete multipart upload");
                 }
 
                 const result = await completeUploadResponse.json();
                 const video_id = result.video_id;
                 activeUploads[video_id] = setInterval(() => checkStatus(video_id), 5000);
-
             } catch (error) {
-                console.error('Error completing multipart upload:', error);
-                alert('Error finalizing upload.');
+                console.error("Error completing multipart upload:", error);
+                alert("Error finalizing upload.");
             }
         }
 
         function addProgressTracker(video_id, totalChunks) {
-            const progressElement = document.createElement('div');
+            const progressElement = document.createElement("div");
             progressElement.id = `progress-${video_id}`;
-            progressElement.className = 'bg-[var(--background-color)] p-4 rounded-lg border border-[var(--accent-color)]';
+            progressElement.className = "bg-[var(--background-color)] p-4 rounded-lg border border-[var(--accent-color)]";
             progressElement.dataset.totalChunks = totalChunks;
             progressElement.dataset.completedChunks = 0;
 
@@ -340,7 +340,7 @@
             const totalChunks = parseInt(progressElement.dataset.totalChunks, 10);
             let completedChunks = parseInt(progressElement.dataset.completedChunks, 10);
 
-            if (status === 'complete') {
+            if (status === "complete") {
                 completedChunks++;
                 progressElement.dataset.completedChunks = completedChunks;
             }
@@ -351,7 +351,7 @@
 
             const statusText = document.getElementById(`status-text-${video_id}`);
             if (percentage === 100) {
-                statusText.textContent = 'Finalizing...';
+                statusText.textContent = "Finalizing...";
             } else {
                 statusText.textContent = `Uploading... ${Math.round(percentage)}%`;
             }
@@ -366,18 +366,18 @@
                 const statusText = document.getElementById(`status-text-${video_id}`);
                 const presetStatusContainer = document.getElementById(`preset-status-${video_id}`);
 
-                if (data.status === 'processing' || data.status === 'processing_complete') {
+                if (data.status === "processing" || data.status === "processing_complete") {
                     let completedCount = 0;
                     let totalPresets = 0;
-                    let presetHtml = '';
+                    let presetHtml = "";
 
                     if (data.presets) {
                         totalPresets = Object.keys(data.presets).length;
                         for (const [preset, status] of Object.entries(data.presets)) {
-                            if (status === 'complete') {
+                            if (status === "complete") {
                                 completedCount++;
                                 presetHtml += `<span class="inline-block bg-green-500/20 text-green-400 px-2 py-0.5 rounded-full text-xs mr-1">${preset}</span>`;
-                            } else if (status === 'processing') {
+                            } else if (status === "processing") {
                                 presetHtml += `<span class="inline-block bg-yellow-500/20 text-yellow-400 px-2 py-0.5 rounded-full text-xs mr-1">${preset} (processing)</span>`;
                             } else {
                                 presetHtml += `<span class="inline-block bg-gray-500/20 text-gray-400 px-2 py-0.5 rounded-full text-xs mr-1">${preset} (pending)</span>`;
@@ -390,32 +390,30 @@
                     statusText.textContent = `${Math.round(percentage)}% Complete`;
                     presetStatusContainer.innerHTML = presetHtml;
 
-                    if (data.status === 'processing_complete') {
-                        statusText.textContent = 'Completed';
-                        statusText.className = 'text-xs text-green-400';
-                        progressBar.style.backgroundColor = 'var(--green-500)';
+                    if (data.status === "processing_complete") {
+                        statusText.textContent = "Completed";
+                        statusText.className = "text-xs text-green-400";
+                        progressBar.style.backgroundColor = "var(--green-500)";
                         clearInterval(activeUploads[video_id]);
                         delete activeUploads[video_id];
                     }
-
-                } else if (data.status === 'not_found') {
-                    statusText.textContent = 'Error: Not Found';
-                    statusText.className = 'text-xs text-red-400';
+                } else if (data.status === "not_found") {
+                    statusText.textContent = "Error: Not Found";
+                    statusText.className = "text-xs text-red-400";
                     clearInterval(activeUploads[video_id]);
                     delete activeUploads[video_id];
-                } else if (data.status === 'error') {
+                } else if (data.status === "error") {
                     statusText.textContent = `Error: ${data.message}`;
-                    statusText.className = 'text-xs text-red-400';
+                    statusText.className = "text-xs text-red-400";
                     clearInterval(activeUploads[video_id]);
                     delete activeUploads[video_id];
                 }
-
             } catch (error) {
-                console.error('Error checking status:', error);
+                console.error("Error checking status:", error);
                 const statusText = document.getElementById(`status-text-${video_id}`);
                 if (statusText) {
-                    statusText.textContent = 'Error checking status';
-                    statusText.className = 'text-xs text-red-400';
+                    statusText.textContent = "Error checking status";
+                    statusText.className = "text-xs text-red-400";
                 }
                 clearInterval(activeUploads[video_id]);
                 delete activeUploads[video_id];
@@ -423,22 +421,23 @@
         }
 
         async function fetchAndDisplayVideos() {
-            const videosContainer = document.getElementById('videos-container');
-            const noVideosMessage = document.getElementById('no-videos-message');
+            const videosContainer = document.getElementById("videos-container");
+            const noVideosMessage = document.getElementById("no-videos-message");
 
             try {
-                const response = await fetch('/api/videos');
+                const response = await fetch("/api/videos");
                 const data = await response.json();
 
                 // Clear existing content
-                videosContainer.innerHTML = '';
+                videosContainer.innerHTML = "";
 
                 if (data.videos && data.videos.length > 0) {
-                    noVideosMessage.style.display = 'none';
+                    noVideosMessage.style.display = "none";
 
-                    data.videos.forEach(video => {
-                        const videoElement = document.createElement('div');
-                        videoElement.className = 'bg-[var(--background-color)] rounded-lg overflow-hidden group border border-[var(--accent-color)] hover:border-[var(--primary-color)] transition-all duration-300 hover:shadow-2xl hover:scale-[1.02]';
+                    data.videos.forEach((video) => {
+                        const videoElement = document.createElement("div");
+                        videoElement.className =
+                            "bg-[var(--background-color)] rounded-lg overflow-hidden group border border-[var(--accent-color)] hover:border-[var(--primary-color)] transition-all duration-300 hover:shadow-2xl hover:scale-[1.02]";
                         videoElement.innerHTML = `
                             <div class="relative aspect-video bg-[var(--accent-color)]">
                                 <img alt="Video thumbnail" class="object-cover w-full h-full"
@@ -496,37 +495,106 @@
                         videosContainer.appendChild(videoElement);
                     });
                 } else {
-                    noVideosMessage.style.display = 'block';
+                    noVideosMessage.style.display = "block";
                 }
             } catch (error) {
-                console.error('Error fetching videos:', error);
+                console.error("Error fetching videos:", error);
             }
         }
 
-        document.addEventListener('DOMContentLoaded', fetchVideos);
+        async function fetchOngoingTranscodes() {
+            try {
+                const response = await fetch("/api/transcoding_status");
+                const transcodes = await response.json();
+
+                const container = document.getElementById("ongoing-transcoding-container");
+                if (!container) return;
+                container.innerHTML = ""; // Clear previous entries
+
+                if (transcodes.length === 0) {
+                    const noTranscodesMessage = document.createElement("div");
+                    noTranscodesMessage.id = "no-ongoing-transcodes-message";
+                    noTranscodesMessage.className = "text-center text-[var(--text-secondary)]";
+                    noTranscodesMessage.textContent = "No ongoing transcodes.";
+                    container.appendChild(noTranscodesMessage);
+                } else {
+                    transcodes.forEach((transcode) => {
+                        const element = document.createElement("div");
+                        element.id = `transcode-${transcode.video_id.replace(/[^a-zA-Z0-9]/g, "-")}`;
+                        element.className = "bg-[var(--background-color)] p-4 rounded-lg border border-[var(--accent-color)]";
+
+                        let presetHtml = "";
+                        let completedCount = 0;
+                        const presets = transcode.presets || {};
+                        const totalPresets = Object.keys(presets).length;
+
+                        for (const [preset, status] of Object.entries(presets)) {
+                            if (status === "complete") {
+                                completedCount++;
+                                presetHtml += `<span class="inline-block bg-green-500/20 text-green-400 px-2 py-0.5 rounded-full text-xs mr-1">${preset}</span>`;
+                            } else if (status === "processing") {
+                                presetHtml += `<span class="inline-block bg-yellow-500/20 text-yellow-400 px-2 py-0.5 rounded-full text-xs mr-1">${preset} (processing)</span>`;
+                            } else {
+                                presetHtml += `<span class="inline-block bg-gray-500/20 text-gray-400 px-2 py-0.5 rounded-full text-xs mr-1">${preset} (pending)</span>`;
+                            }
+                        }
+
+                        const percentage = totalPresets > 0 ? (completedCount / totalPresets) * 100 : 0;
+
+                        element.innerHTML = `
+                        <div class="flex justify-between items-center mb-2">
+                            <p class="text-sm font-medium text-[var(--text-primary)]">${transcode.video_id}</p>
+                            <p class="text-xs text-[var(--primary-color)]">${Math.round(percentage)}% Complete</p>
+                        </div>
+                        <div class="w-full bg-[var(--accent-color)] rounded-full h-2.5">
+                            <div class="bg-[var(--primary-color)] h-2.5 rounded-full" style="width: ${percentage}%;"></div>
+                        </div>
+                        <div class="text-xs text-[var(--text-secondary)] mt-2">${presetHtml}</div>
+                        `;
+                        container.appendChild(element);
+                    });
+                }
+            } catch (error) {
+                console.error("Error fetching ongoing transcodes:", error);
+                const container = document.getElementById("ongoing-transcoding-container");
+                if (container) {
+                    container.innerHTML = '<p class="text-center text-red-500">Error loading transcoding status.</p>';
+                }
+            }
+        }
 
         async function fetchVideos() {
+            const videosContainer = document.getElementById("videos-container");
+            if (!videosContainer) return;
+
             try {
-                const response = await fetch('/api/videos');
+                const response = await fetch("/api/videos");
                 if (!response.ok) {
-                    throw new Error('Failed to fetch videos');
+                    throw new Error("Failed to fetch videos");
                 }
                 const videos = await response.json();
-                const videosContainer = document.getElementById('videos-container');
-                const noVideosMessage = document.getElementById('no-videos-message');
+
+                videosContainer.innerHTML = ""; // Clear previous content
 
                 if (videos.length === 0) {
-                    noVideosMessage.style.display = 'block';
-                    videosContainer.innerHTML = ''; // Clear any existing content
+                    const noVideosMessage = document.createElement("div");
+                    noVideosMessage.id = "no-videos-message";
+                    noVideosMessage.className = "col-span-full text-center text-[var(--text-secondary)] text-sm py-8";
+                    noVideosMessage.innerHTML = `
+                        No videos found.
+                        <a class="text-[var(--primary-color)] hover:underline" href="#"
+                            onclick="document.getElementById('dropzone-file').click(); return false;">
+                            Upload your first video!
+                        </a>
+                    `;
                     videosContainer.appendChild(noVideosMessage);
                 } else {
-                    noVideosMessage.style.display = 'none';
-                    videosContainer.innerHTML = ''; // Clear previous content
-                    videos.forEach(video => {
-                        const videoElement = document.createElement('div');
-                        videoElement.className = 'bg-[var(--background-color)] rounded-lg overflow-hidden group border border-[var(--accent-color)] hover:border-[var(--primary-color)] transition-all duration-300 hover:shadow-2xl hover:scale-[1.02]';
+                    videos.forEach((video) => {
+                        const videoElement = document.createElement("div");
+                        videoElement.className =
+                            "bg-[var(--background-color)] rounded-lg overflow-hidden group border border-[var(--accent-color)] hover:border-[var(--primary-color)] transition-all duration-300 hover:shadow-2xl hover:scale-[1.02]";
 
-                        const presets = video.presets.join(', ');
+                        const presets = video.presets.join(", ");
 
                         videoElement.innerHTML = `
                             <div class="relative aspect-video bg-[var(--accent-color)]">
@@ -550,11 +618,18 @@
                     });
                 }
             } catch (error) {
-                console.error('Error fetching videos:', error);
-                const videosContainer = document.getElementById('videos-container');
+                console.error("Error fetching videos:", error);
                 videosContainer.innerHTML = `<div class="col-span-full text-center text-red-400 text-sm py-8">Error loading videos. Please try again later.</div>`;
             }
         }
+
+        document.addEventListener("DOMContentLoaded", () => {
+            fetchVideos();
+            fetchOngoingTranscodes();
+
+            setInterval(fetchVideos, 5000);
+            setInterval(fetchOngoingTranscodes, 5000); // Refresh every 5 seconds
+        });
     </script>
 </body>
 

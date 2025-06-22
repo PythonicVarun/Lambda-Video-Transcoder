@@ -31,6 +31,8 @@ S3_TRANSFER_CONFIG = TransferConfig(multipart_threshold=1 * GB)
 # Bucket Name
 BUCKET_NAME = os.environ.get("BUCKET_NAME")
 
+GENERATE_DASH = os.environ.get("GENERATE_DASH", "false").lower() == "true"
+
 # Paths for binaries in Lambda Layer
 FFMPEG = "/opt/bin/ffmpeg"
 FFPROBE = "/opt/bin/ffprobe"
@@ -206,11 +208,39 @@ def status(video_id):
             500,
         )
 
-    base_name, _ = os.path.splitext(video_id)
-    manifest_key = f"processed/{base_name}/manifest.json"
-    logger.debug("Checking status for '%s' at '%s'", video_id, manifest_key)
+    process_id = None
+    manifest_key = None
+    # Heuristic to check if video_id is a process_id (MD5 hash)
+    if len(video_id) == 32 and all(c in "0123456789abcdef" for c in video_id.lower()):
+        logger.debug("Treating '%s' as a potential process_id", video_id)
+        process_id = video_id
+        manifest_key = f"processed/{process_id}/manifest.json"
 
     try:
+        if not manifest_key:
+            base_name, _ = os.path.splitext(video_id)
+            redirect_key = f"processed/{base_name}.json"
+            logger.debug(
+                "Looking for redirect file for '%s' at '%s'", video_id, redirect_key
+            )
+
+            redirect_obj = s3.get_object(Bucket=BUCKET_NAME, Key=redirect_key)
+            redirect_data = json.loads(redirect_obj["Body"].read().decode("utf-8"))
+            process_id = redirect_data.get("process_id")
+
+            if not process_id:
+                logger.error("process_id not found in redirect file %s", redirect_key)
+                return (
+                    jsonify(
+                        {"status": "error", "message": "Invalid processing reference"}
+                    ),
+                    500,
+                )
+            manifest_key = f"processed/{process_id}/manifest.json"
+
+        logger.debug("Checking status for '%s' at '%s'", video_id, manifest_key)
+
+        # Get the actual manifest
         response = s3.get_object(Bucket=BUCKET_NAME, Key=manifest_key)
         manifest_data = response["Body"].read().decode("utf-8")
         manifest = json.loads(manifest_data)
@@ -242,6 +272,32 @@ def status(video_id):
                     logger.warning(
                         "Transcription failed for '%s': %s", video_id, failure_reason
                     )
+
+                if transcription_status in ["COMPLETED", "FAILED"]:
+                    # Clean up the temporary audio file if it exists
+                    process_id = manifest.get("process_id")
+                    if process_id:
+                        audio_key = f"processed/{process_id}/audio.wav"
+                        try:
+                            # Check if the converted audio file exists before deleting
+                            s3.head_object(Bucket=BUCKET_NAME, Key=audio_key)
+                            logger.info(
+                                "Transcription complete, deleting temporary audio file: %s",
+                                audio_key,
+                            )
+                            s3.delete_object(Bucket=BUCKET_NAME, Key=audio_key)
+                        except s3.exceptions.ClientError as e:
+                            if e.response["Error"]["Code"] == "NoSuchKey":
+                                # File doesn't exist, which is fine.
+                                pass
+                            else:
+                                # Another S3 error occurred
+                                logger.warning(
+                                    "Error checking/deleting temporary audio file %s: %s",
+                                    audio_key,
+                                    e,
+                                )
+
             except transcribe.exceptions.NotFoundException:
                 logger.warning(
                     "Transcription job '%s' not found.", transcription_job_name
@@ -251,17 +307,18 @@ def status(video_id):
         return jsonify(manifest)
     except s3.exceptions.ClientError as e:
         if e.response["Error"]["Code"] == "NoSuchKey":
-            # Check if the original file exists, to distinguish between processing and not found
+            # This could be either the redirect file or the manifest file not found.
+            # If either is not found, we check if the original upload exists.
             try:
                 s3.head_object(Bucket=BUCKET_NAME, Key=f"uploads/{video_id}")
                 logger.info(
-                    "Manifest not found for '%s', but source exists. Status: processing",
+                    "Manifest/redirect not found for '%s', but source exists. Status: processing",
                     video_id,
                 )
                 return jsonify({"status": "processing"}), 202
             except s3.exceptions.ClientError:
                 logger.warning(
-                    "Manifest and source file not found for '%s'. Status: not_found",
+                    "Manifest/redirect and source file not found for '%s'. Status: not_found",
                     video_id,
                 )
                 return jsonify({"status": "not_found"}), 404
@@ -272,6 +329,51 @@ def status(video_id):
             return jsonify({"status": "error", "message": str(e)}), 500
     except Exception as e:
         logger.error("Error getting status for '%s': %s", video_id, e, exc_info=True)
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+
+@app.route("/api/transcoding_status")
+def get_transcoding_status():
+    if not BUCKET_NAME:
+        logger.error("Cannot get transcoding status: BUCKET_NAME not configured.")
+        return (
+            jsonify({"status": "error", "message": "Bucket name not configured"}),
+            500,
+        )
+
+    processing_videos = []
+    try:
+        paginator = s3.get_paginator("list_objects_v2")
+        pages = paginator.paginate(
+            Bucket=BUCKET_NAME, Prefix="processed/", Delimiter="/"
+        )
+
+        for page in pages:
+            for prefix in page.get("CommonPrefixes", []):
+                manifest_key = f"{prefix['Prefix']}manifest.json"
+                try:
+                    response = s3.get_object(Bucket=BUCKET_NAME, Key=manifest_key)
+                    manifest_data = response["Body"].read().decode("utf-8")
+                    manifest = json.loads(manifest_data)
+
+                    if manifest.get("status") == "processing":
+                        processing_videos.append(manifest)
+
+                except s3.exceptions.ClientError as e:
+                    if e.response["Error"]["Code"] == "NoSuchKey":
+                        logger.debug(f"No manifest found for prefix {prefix['Prefix']}, skipping.")
+                    else:
+                        logger.error(
+                            f"Error reading manifest for {prefix['Prefix']}: {e}"
+                        )
+                except Exception as e:
+                    logger.error(
+                        f"Error processing manifest for {prefix['Prefix']}: {e}"
+                    )
+        return jsonify(processing_videos)
+
+    except Exception as e:
+        logger.error("Error listing transcoding status: %s", e, exc_info=True)
         return jsonify({"status": "error", "message": str(e)}), 500
 
 
@@ -341,24 +443,30 @@ def get_videos():
 
 @app.route("/stream/<path:key>")
 def stream(key):
-    range_header = request.headers.get("Range", None)
-    event = {
-        "queryStringParameters": {"bucket": BUCKET_NAME, "key": key},
-        "headers": {},
-    }
-    if range_header:
-        event["headers"]["Range"] = range_header
+    safe_key = os.path.normpath(key)
 
-    logger.debug("Streaming request for key: %s, range: %s", key, range_header)
-    response_data = stream_handler(event)
+    if safe_key.startswith(".."):
+        logger.warning(
+            "Attempted access to invalid key: %s (normalized: %s)", key, safe_key
+        )
+        return "Invalid key", 400
 
-    response_body = base64.b64decode(response_data["body"])
-
-    return Response(
-        response_body,
-        status=response_data["statusCode"],
-        headers=response_data["headers"],
-    )
+    try:
+        presigned_url = s3.generate_presigned_url(
+            "get_object",
+            Params={"Bucket": BUCKET_NAME, "Key": "processed/" + safe_key},
+            ExpiresIn=3600,  # URL expires in 1 hour.
+        )
+        # Redirect the client to the presigned URL.
+        return redirect(presigned_url)
+    except Exception as e:
+        logger.error(
+            "Error generating presigned URL for key '%s': %s", safe_key, e, exc_info=True
+        )
+        return (
+            jsonify({"status": "error", "message": "Could not generate stream URL."}),
+            500,
+        )
 
 
 def probe_resolution(path):
@@ -540,6 +648,17 @@ def process_video(event):
     logger.info("Creating initial manifest at %s", manifest_key)
     _update_manifest(bucket, manifest_key, initial_manifest)
 
+    # Create a redirect file from base_name to process_id
+    redirect_key = f"processed/{base_name}.json"
+    redirect_content = {"process_id": file_md5}
+    s3.put_object(
+        Bucket=bucket,
+        Key=redirect_key,
+        Body=json.dumps(redirect_content),
+        ContentType="application/json",
+    )
+    logger.info("Created redirect file at %s", redirect_key)
+
     try:
         # HLS generation
         for p in presets:
@@ -621,55 +740,56 @@ def process_video(event):
         )
 
         # DASH generation using ffmpeg dash muxer
-        logger.info("Generating DASH manifest and segments")
-        dash_dir = tempfile.mkdtemp()
-        dash_mpd = os.path.join(dash_dir, "stream.mpd")
-        map_cmd = []
-        for p in presets:
-            map_cmd += [
-                "-map",
-                "0:v:0",
-                "-b:v:" + str(presets.index(p)),
-                p["bitrate"],
-                "-filter:v:" + str(presets.index(p)),
-                f"scale={p['width']}:{p['height']}",
+        if GENERATE_DASH:
+            logger.info("Generating DASH manifest and segments")
+            dash_dir = tempfile.mkdtemp()
+            dash_mpd = os.path.join(dash_dir, "stream.mpd")
+            map_cmd = []
+            for p in presets:
+                map_cmd += [
+                    "-map",
+                    "0:v:0",
+                    "-b:v:" + str(presets.index(p)),
+                    p["bitrate"],
+                    "-filter:v:" + str(presets.index(p)),
+                    f"scale={p['width']}:{p['height']}",
+                ]
+            cmd_dash = [
+                FFMPEG,
+                "-y",
+                "-loglevel",
+                "error",
+                "-i",
+                tmp_in,
+                *map_cmd,
+                "-c:a",
+                "aac",
+                "-use_template",
+                "1",
+                "-use_timeline",
+                "1",
+                "-adaptation_sets",
+                "id=0,streams=v id=1,streams=a",
+                "-f",
+                "dash",
+                dash_mpd,
             ]
-        cmd_dash = [
-            FFMPEG,
-            "-y",
-            "-loglevel",
-            "error",
-            "-i",
-            tmp_in,
-            *map_cmd,
-            "-c:a",
-            "aac",
-            "-use_template",
-            "1",
-            "-use_timeline",
-            "1",
-            "-adaptation_sets",
-            "id=0,streams=v id=1,streams=a",
-            "-f",
-            "dash",
-            dash_mpd,
-        ]
-        subprocess.check_call(cmd_dash)
-        # upload DASH files
-        logger.info("Uploading DASH files")
-        for root, _, files in os.walk(dash_dir):
-            for f in files:
-                path = os.path.join(root, f)
-                s3.upload_file(
-                    path,
-                    bucket,
-                    output_prefix + f"dash/{f}",
-                    ExtraArgs={"ContentType": _guess_mime(f)},
-                )
-                try:
-                    os.remove(path)
-                except:
-                    pass
+            subprocess.check_call(cmd_dash)
+            # upload DASH files
+            logger.info("Uploading DASH files")
+            for root, _, files in os.walk(dash_dir):
+                for f in files:
+                    path = os.path.join(root, f)
+                    s3.upload_file(
+                        path,
+                        bucket,
+                        output_prefix + f"dash/{f}",
+                        ExtraArgs={"ContentType": _guess_mime(f)},
+                    )
+                    try:
+                        os.remove(path)
+                    except:
+                        pass
 
         # Create sprite sheet
         logger.info("Generating sprite sheet")
@@ -791,9 +911,10 @@ def process_video(event):
             IdentifyLanguage=True,
             LanguageOptions=LANGUAGE_OPTIONS,
             OutputBucketName=bucket,
-            OutputKey=f"{output_prefix}{job}.json",
+            OutputKey=f"{output_prefix}{job_name}.json",
         )
-
+        
+        output_prefix = output_prefix.replace("processed/", "/", 1).replace("//", "/")
         final_manifest_update = {
             "status": "processing_complete",
             "video_id": os.path.basename(key),
@@ -805,6 +926,8 @@ def process_video(event):
             "dash": output_prefix + "dash/stream.mpd",
             "transcription_job": job_name,
         }
+        if not GENERATE_DASH:
+            final_manifest_update.pop("dash", None)
 
         logger.info("Processing complete, updating final manifest.")
         _update_manifest(bucket, manifest_key, final_manifest_update)
