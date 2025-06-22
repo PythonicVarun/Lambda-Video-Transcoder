@@ -5,7 +5,6 @@ import logging
 import math
 import mimetypes
 import os
-from random import random
 import re
 import subprocess
 import tempfile
@@ -29,11 +28,17 @@ logger.setLevel(log_level)
 GB = 1024**3
 S3_TRANSFER_CONFIG = TransferConfig(multipart_threshold=1 * GB)
 
+ENV_TRUE = ["t", "true", "1", "yes"]
+
 # Bucket Name
 BUCKET_NAME = os.environ.get("BUCKET_NAME")
 
-GENERATE_DASH = os.environ.get("GENERATE_DASH", "false").lower() == "true"
+GENERATE_DASH = os.environ.get("GENERATE_DASH", "true").lower() in ENV_TRUE
+GENERATE_SUBTITLES = os.environ.get("GENERATE_SUBTITLES", "true").lower() in ENV_TRUE
+
 THUMBNAIL_WIDTH = int(os.environ.get("THUMBNAIL_WIDTH", 1280))
+
+LAMBDA_FUNCTION_URL = os.environ.get("LAMBDA_FUNCTION_URL", "").rstrip("/")
 
 # Paths for binaries in Lambda Layer
 FFMPEG = "/opt/bin/ffmpeg"
@@ -66,7 +71,7 @@ SPRITE_FPS = 1
 SPRITE_ROWS = 10
 SPRITE_COLUMNS = 10
 SPRITE_INTERVAL = 1  # seconds between frames in sprite
-SPRITE_SCALE_W = 320
+SPRITE_SCALE_W = 178
 
 
 # Transcription language
@@ -250,7 +255,7 @@ def status(video_id):
 
         # Check transcription status
         transcription_job_name = manifest.get("transcription_job")
-        if transcription_job_name:
+        if GENERATE_SUBTITLES and transcription_job_name:
             try:
                 job_status_response = transcribe.get_transcription_job(
                     TranscriptionJobName=transcription_job_name
@@ -363,7 +368,9 @@ def get_transcoding_status():
 
                 except s3.exceptions.ClientError as e:
                     if e.response["Error"]["Code"] == "NoSuchKey":
-                        logger.debug(f"No manifest found for prefix {prefix['Prefix']}, skipping.")
+                        logger.debug(
+                            f"No manifest found for prefix {prefix['Prefix']}, skipping."
+                        )
                     else:
                         logger.error(
                             f"Error reading manifest for {prefix['Prefix']}: {e}"
@@ -405,14 +412,15 @@ def get_videos():
                     uploaded_at = response.get("LastModified")
 
                     if manifest.get("status") == "processing_complete":
-                        thumbnail_path = manifest.get("thumbnail") or manifest.get("sprite", "").replace(
-                            "thumbnails.vtt", "sprite_0.png"
-                        )
+                        thumbnail_path = manifest.get("thumbnail") or manifest.get(
+                            "sprite", ""
+                        ).replace("thumbnails.vtt", "sprite_0.png")
 
                         videos.append(
                             {
                                 "video_id": manifest.get("video_id"),
                                 "base_name": manifest.get("base_name"),
+                                "sprite": url_for("stream", key=manifest.get("sprite")),
                                 "thumbnail_url": url_for("stream", key=thumbnail_path),
                                 "hls_url": url_for("stream", key=manifest.get("hls")),
                                 "presets": manifest.get("presets", []),
@@ -443,6 +451,71 @@ def get_videos():
         return jsonify({"status": "error", "message": str(e)}), 500
 
 
+@app.route("/api/video/<video_id>", methods=["DELETE"])
+def delete_video(video_id):
+    if not BUCKET_NAME:
+        logger.error("Cannot delete video: BUCKET_NAME not configured.")
+        return (
+            jsonify({"status": "error", "message": "Bucket name not configured."}),
+            500,
+        )
+
+    try:
+        # Find the process_id from the redirect file
+        base_name, _ = os.path.splitext(video_id)
+        redirect_key = f"processed/{base_name}.json"
+        try:
+            redirect_obj = s3.get_object(Bucket=BUCKET_NAME, Key=redirect_key)
+            redirect_data = json.loads(redirect_obj["Body"].read().decode("utf-8"))
+            process_id = redirect_data.get("process_id")
+        except s3.exceptions.ClientError as e:
+            if e.response["Error"]["Code"] == "NoSuchKey":
+                # If redirect does not exist, maybe the video_id is the process_id
+                process_id = base_name
+            else:
+                raise e
+
+        if not process_id:
+            return (
+                jsonify({"status": "error", "message": "Video process ID not found."}),
+                404,
+            )
+
+        # List all objects in the folder and delete them
+        prefix = f"processed/{process_id}/"
+        response = s3.list_objects_v2(Bucket=BUCKET_NAME, Prefix=prefix)
+
+        if "Contents" in response:
+            objects_to_delete = [{"Key": obj["Key"]} for obj in response["Contents"]]
+            s3.delete_objects(Bucket=BUCKET_NAME, Delete={"Objects": objects_to_delete})
+            logger.info(f"Deleted all files in folder {prefix}")
+
+        # Delete the redirect file
+        try:
+            s3.delete_object(Bucket=BUCKET_NAME, Key=redirect_key)
+            logger.info(f"Deleted redirect file {redirect_key}")
+        except s3.exceptions.ClientError as e:
+            if e.response["Error"]["Code"] != "NoSuchKey":
+                logger.warning(f"Could not delete redirect file {redirect_key}: {e}")
+
+        # Delete the original upload
+        try:
+            s3.delete_object(Bucket=BUCKET_NAME, Key=f"uploads/{video_id}")
+            logger.info(f"Deleted original upload {video_id}")
+        except s3.exceptions.ClientError as e:
+            if e.response["Error"]["Code"] != "NoSuchKey":
+                logger.warning(f"Could not delete original upload {video_id}: {e}")
+
+        return (
+            jsonify({"status": "success", "message": "Video deleted successfully."}),
+            200,
+        )
+
+    except Exception as e:
+        logger.error(f"Error deleting video {video_id}: {e}", exc_info=True)
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+
 @app.route("/stream/<path:key>")
 def stream(key):
     safe_key = os.path.normpath(key)
@@ -463,7 +536,10 @@ def stream(key):
         return redirect(presigned_url)
     except Exception as e:
         logger.error(
-            "Error generating presigned URL for key '%s': %s", safe_key, e, exc_info=True
+            "Error generating presigned URL for key '%s': %s",
+            safe_key,
+            e,
+            exc_info=True,
         )
         return (
             jsonify({"status": "error", "message": "Could not generate stream URL."}),
@@ -583,7 +659,9 @@ def generate_vtt(
         # Cue:
         lines.append(str(i + 1))
         lines.append(f"{ts_start} --> {ts_end}")
-        lines.append(f"{sprite_file}#xywh={x},{y},{thumb_w},{thumb_h}")
+        lines.append(
+            f"{LAMBDA_FUNCTION_URL}/stream/{sprite_file}#xywh={x},{y},{thumb_w},{thumb_h}"
+        )
         lines.append("")  # blank line between cues
 
     # Write to .vtt
@@ -700,6 +778,8 @@ def process_video(event):
                 "6",
                 "-hls_list_size",
                 "0",
+                "-hls_base_url",
+                f"{LAMBDA_FUNCTION_URL}/stream/{file_md5}/hls/{p['name']}/",
                 "-hls_segment_filename",
                 os.path.join(out_hls, f"seg_%03d_{p['name']}.ts"),
                 playlist,
@@ -732,7 +812,7 @@ def process_video(event):
         master_hls = "#EXTM3U\n"
         for p in presets:
             master_hls += f"#EXT-X-STREAM-INF:BANDWIDTH={int(p['bitrate'].rstrip('k'))*1000},RESOLUTION={p['width']}x{p['height']}\n"
-            master_hls += f"hls/{p['name']}/{p['name']}.m3u8\n"
+            master_hls += f"{LAMBDA_FUNCTION_URL}/stream/{file_md5}/hls/{p['name']}/{p['name']}.m3u8\n"
         s3.put_object(
             Bucket=bucket,
             Key=output_prefix + "hls/master.m3u8",
@@ -833,7 +913,7 @@ def process_video(event):
         logger.info("Generating VTT file")
         generate_vtt(
             tmp_in,
-            f"{output_prefix}thumbnail/sprite_{{i}}.png",
+            f"{output_prefix.replace('processed/', '', 1)}thumbnail/sprite_{{i}}.png",
             vtt,
             SPRITE_COLUMNS,
             SPRITE_ROWS,
@@ -925,24 +1005,25 @@ def process_video(event):
             transcribe_key = key
 
         # Start transcription
-        job = f"{base_name}-{int(time.time())}"
-        job_name = re.sub(r"[^0-9a-zA-Z._-]", "_", job)
-        logger.info("Starting transcription job: %s", job_name)
-        transcribe.start_transcription_job(
-            TranscriptionJobName=job_name,
-            Media={"MediaFileUri": f"s3://{bucket}/{transcribe_key}"},
-            MediaFormat=ext.lstrip("."),
-            Subtitles={
-                "Formats": ["srt"],
-                "OutputStartIndex": 1,
-            },
-            IdentifyLanguage=True,
-            LanguageOptions=LANGUAGE_OPTIONS,
-            OutputBucketName=bucket,
-            OutputKey=f"{output_prefix}{job_name}.json",
-        )
+        if GENERATE_SUBTITLES:
+            job = f"{base_name}-{int(time.time())}"
+            job_name = re.sub(r"[^0-9a-zA-Z._-]", "_", job)
+            logger.info("Starting transcription job: %s", job_name)
+            transcribe.start_transcription_job(
+                TranscriptionJobName=job_name,
+                Media={"MediaFileUri": f"s3://{bucket}/{transcribe_key}"},
+                MediaFormat=ext.lstrip("."),
+                Subtitles={
+                    "Formats": ["srt"],
+                    "OutputStartIndex": 1,
+                },
+                IdentifyLanguage=True,
+                LanguageOptions=LANGUAGE_OPTIONS,
+                OutputBucketName=bucket,
+                OutputKey=f"{output_prefix}{job_name}.json",
+            )
 
-        output_prefix = output_prefix.replace("/processed/", "/", 1).replace("//", "/")
+        output_prefix = output_prefix.replace("processed/", "", 1)
         final_manifest_update = {
             "status": "processing_complete",
             "video_id": os.path.basename(key),
@@ -952,9 +1033,11 @@ def process_video(event):
             "sprite": output_prefix + "thumbnail/thumbnails.vtt",
             "hls": output_prefix + "hls/master.m3u8",
             "dash": output_prefix + "dash/stream.mpd",
-            "transcription_job": job_name,
             "thumbnail": output_prefix + "thumbnail/thumbnail.png",
         }
+        if GENERATE_SUBTITLES:
+            final_manifest_update["transcription_job"] = job_name
+
         if not GENERATE_DASH:
             final_manifest_update.pop("dash", None)
 

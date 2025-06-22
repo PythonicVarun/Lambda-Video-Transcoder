@@ -11,7 +11,10 @@
         href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADAAAAAwCAYAAABXAvmHAAAAAXNSR0IArs4c6QAABWVJREFUaEPtWX+IVUUU/s7dp7b77p2rhhtpIRFYKZFZkIZYUv6RSEIQKpFGtf/0G/tpuu/OfbtaRmSQRYQRVtJiCYZYUSaSoGJGBLIlUQhZbBq5b+68XaPdd/KZu+y77/6Yt+4+Ebz/zjnfd745c+bOnCFc4B9d4PHjooDznUGjDGRz3QvIoucBmsXAdsB6sSjtrqTg7VzgweIWAvoYtElLpz3JvnF1z5RMpm8dA4tBfIhLDS8V8/bXaROUKsDJqVVMWBcC6mz4pzS38PL4k1EEtqe2Arh36BgB7we+WBFpvyqYhHG8H4yrh44z88pi3t2QJCJRQJPsvtli69sYgN3aF3eEx7KeWk/Ac5E+TGt03lkbHrNlcAjMN0X6EF2vpXM4TkSiANsrfA/QzDhnJr6/KN0PB8bt1mAGLI4lK9v1U+bKXtl0bMAnKwtPEVP8LBP2ainm1SzAkWoRM3YkrkHCz1qKaYMCZKEDTEuS1y1v1L77+KCPp/4E0Jy4TEqYF7SJvVE2sRmwpdoHxpy0IgLRfC2dPXZ5HY/l46n2gNbKacYG6rVlsBTMH6X5MGFnUYpFxgKaZHGyxf2/pwGfHd+kfdGSzRWeJKLXzXxoifadrY6ndjKwMNWHwGN6+yacXD+xELaNzIAtC4+B6Y1U4P8N/tK+02x7wW4Atxv5EG3RBbvFFkE3gLGGPsu0dDqMBDhSfcaMu4yAAVglnl2y6ICpPYDjTLyCmD439SHC5kCKB4wE2J4qz4xrCg6ij8C8zNj+jCF3ALTU2IdwREtxbaqAS1afnJrJNBw1Bq6joSadhZzcM5SyqgZsGdwD5m11jMuYikq4NWgT+9MErAFzmzFqHQ2J8XCQF+8mCshKtYkYD9UxrhqoOK9910vLwJdgXlADat1MmfBeUYoHUwSon8C4pm5R1UTEu7TvVkxuRBGr42BMqgm3XsaEH7QUFYfLagGeKv+uRb1iqpHnV+2LijtDVAZOgTGuRuD6mBNOaCkqTq5RGeD6RDMsllPaF43JReypfwFkhgU/+k592hdj0nYhBYYz+rEMi0FpX1Sc0aKWUOoNaVjUI+PUpX1xeWIGHKmOMmPqyPCNOIrBLuQF3wE8a8SpRwDw9O3tYNEXt6TVwHYwFo8A32hAfKJ9Ee43VfLYsrARTI+OBvu5YhLwWuCLp5NrIKeeZcIr50o2Kv7MT+i8W3FXr9qFjPpBoxJdOiizdWe4X1oloNxkbcj0DXbO0mHrZ2ERX6qk+3fiEioP2p4qN23HG4dGtAXM9xnblw1r9GHgaNEXV4U5IvtCWU/tICCyExYVZPmuWrLwFQFZIxGEgBgLGYhsF0ZjcIf23arOR0xjK3gEzG8aBQMo3elMzE4PttcgepvudJbY07UCuMmEh5mXF/PuB0YZaJQ9VzRw328mwAN9fyenWpjwjonPQFc76h0h0r/W1uLZOii3L2anBcRkLShKe5f7QveE/nFWRYHF+PY20qnmE7JZO1LdzYxP0zgI+CLwRWSnMLY77eTUYqbyc1LCF2qvO57azMDy5ID4Le27gz9KW6pjYExJ5qHbtHS+iay/JEdbqsNgzIizCT9wOFJNY8aRJMzwA4ctU+ptuA8c5SCcVjWHLeyLCeiA9kXV+0HiUYS4TUs3F8azPdUJ4LpInn6artudH+MmJfWRz/YKPkBh0q6G/tLcQvv4X8LAlz3TlS1mG/cCdGNobI/2xfyoQLKt+gaySnuq/j0RRwejXShsdPZ4sRKEmaeX1McgatXSiX+NkX80ZWGvIaDcDu9h4O2iFK8mLa0zTeUxmbVgXgSig6evte1x634oTmoG0naI8z1+UcDFDJzjDPwHGd0LT385pSMAAAAASUVORK5CYII="
         type="image/png" />
     <link href="data:image/x-icon;base64," rel="icon" type="image/x-icon" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link rel="stylesheet" href="https://cdn.vidstack.io/player.css" />
+    <link rel="stylesheet" href="https://cdn.vidstack.io/plyr.css" />
     <style type="text/tailwindcss">
         :root {
                 --primary-color: #0c7ff2;
@@ -80,7 +83,7 @@
                 </button>
             </header>
             <div id="mobile-menu"
-                class="hidden md:hidden px-6 py-4 bg-[var(--secondary-color)] border-b border-solid border-b-[var(--accent-color)]">
+                class="hidden md:hidden sticky top-14 z-[10] px-6 py-4 bg-[var(--secondary-color)] border-b border-solid border-b-[var(--accent-color)]">
                 <nav class="flex flex-col gap-4">
                     <a class="text-sm font-medium leading-normal text-[var(--text-secondary)] hover:text-[var(--primary-color)] transition-colors"
                         href="https://github.com/PythonicVarun">Developer</a>
@@ -159,7 +162,40 @@
             </footer>
         </div>
     </div>
-    <script>
+    <div id="video-player-modal"
+        class="fixed inset-0 z-[60] hidden items-center justify-center bg-black/80 backdrop-blur-sm"
+        style="font-family: 'Space Grotesk', 'Noto Sans', sans-serif;">
+        <div class="relative w-full max-w-4xl rounded-lg bg-[var(--secondary-color)] shadow-xl">
+            <div id="player-container" class="aspect-video">
+                <video id="video-player" playsinline controls></video>
+            </div>
+            <button id="close-modal-button"
+                class="absolute -top-4 -right-4 z-10 flex h-10 w-10 items-center justify-center rounded-full bg-white/20 text-white backdrop-blur-md transition-colors hover:bg-white/30">
+                <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                    xmlns="http://www.w3.org/2000/svg">
+                    <path d="M6 18L18 6M6 6l12 12" stroke-linecap="round" stroke-linejoin="round" stroke-width="2">
+                    </path>
+                </svg>
+            </button>
+        </div>
+    </div>
+    <div id="delete-confirm-modal"
+        class="fixed inset-0 z-[70] hidden items-center justify-center bg-black/80 backdrop-blur-sm">
+        <div class="w-full max-w-md rounded-lg bg-[var(--secondary-color)] p-6 shadow-xl">
+            <h3 class="text-lg font-bold text-[var(--text-primary)]">Confirm Deletion</h3>
+            <p class="mt-2 text-sm text-[var(--text-secondary)]">Are you sure you want to delete this video and all its
+                associated data? This action cannot be undone.</p>
+            <div class="mt-6 flex justify-end gap-4">
+                <button id="cancel-delete-button"
+                    class="rounded-md bg-gray-600 px-4 py-2 text-sm font-bold text-white hover:bg-gray-500">Cancel</button>
+                <button id="confirm-delete-button"
+                    class="rounded-md bg-red-600 px-4 py-2 text-sm font-bold text-white hover:bg-red-500">Delete</button>
+            </div>
+        </div>
+    </div>
+    <script type="module">
+        import { PlyrLayout, VidstackPlayer } from 'https://cdn.vidstack.io/player';
+
         const uploadButton = document.getElementById("upload-button");
         const dropzoneFileInput = document.getElementById("dropzone-file");
         const progressContainer = document.getElementById("progress-container");
@@ -420,88 +456,6 @@
             }
         }
 
-        async function fetchAndDisplayVideos() {
-            const videosContainer = document.getElementById("videos-container");
-            const noVideosMessage = document.getElementById("no-videos-message");
-
-            try {
-                const response = await fetch("/api/videos");
-                const data = await response.json();
-
-                // Clear existing content
-                videosContainer.innerHTML = "";
-
-                if (data.videos && data.videos.length > 0) {
-                    noVideosMessage.style.display = "none";
-
-                    data.videos.forEach((video) => {
-                        const videoElement = document.createElement("div");
-                        videoElement.className =
-                            "bg-[var(--background-color)] rounded-lg overflow-hidden group border border-[var(--accent-color)] hover:border-[var(--primary-color)] transition-all duration-300 hover:shadow-2xl hover:scale-[1.02]";
-                        videoElement.innerHTML = `
-                            <div class="relative aspect-video bg-[var(--accent-color)]">
-                                <img alt="Video thumbnail" class="object-cover w-full h-full"
-                                    src="${video.thumbnailUrl}" />
-                                <div
-                                    class="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                                    <button class="text-[var(--primary-color)] icon-glow">
-                                        <svg class="w-12 h-12" fill="currentColor" viewBox="0 0 20 20"
-                                            xmlns="http://www.w3.org/2000/svg">
-                                            <path clip-rule="evenodd"
-                                                d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z"
-                                                fill-rule="evenodd"></path>
-                                        </svg>
-                                    </button>
-                                </div>
-                                <span
-                                    class="absolute bottom-2 right-2 bg-black/70 text-white text-xs px-1.5 py-0.5 rounded">${video.duration}</span>
-                            </div>
-                            <div class="p-4">
-                                <h3 class="text-md font-semibold text-[var(--text-primary)] truncate"
-                                    title="${video.title}">${video.title}</h3>
-                                <p class="text-xs text-[var(--text-secondary)]">Uploaded: ${new Date(video.uploadDate).toLocaleString()}</p>
-                                <div class="flex justify-between items-center mt-2">
-                                    <span
-                                        class="text-xs bg-[var(--primary-color)]/20 text-[var(--primary-color)] px-2 py-0.5 rounded-full">${video.resolution}</span>
-                                    <div class="flex space-x-2">
-                                        <button
-                                            class="text-[var(--text-secondary)] hover:text-[var(--primary-color)] transition-colors">
-                                            <svg fill="currentColor" height="16" viewBox="0 0 16 16" width="16"
-                                                xmlns="http://www.w3.org/2000/svg">
-                                                <path
-                                                    d="M15.502 1.94a.5.5 0 0 1 0 .706L14.459 3.69l-2-2L13.502.646a.5.5 0 0 1 .707 0l1.293 1.293zm-1.75 2.456-2-2L4.939 9.21a.5.5 0 0 0-.121.196l-.805 2.414a.25.25 0 0 0 .316.316l2.414-.805a.5.5 0 0 0 .196-.12l6.813-6.814z">
-                                                </path>
-                                                <path
-                                                    d="M1 13.5A1.5 1.5 0 0 0 2.5 15h11a1.5 1.5 0 0 0 1.5-1.5v-6a.5.5 0 0 0-1 0v6a.5.5 0 0 1-.5.5h-11a.5.5 0 0 1-.5-.5v-11a.5.5 0 0 1 .5-.5H9a.5.5 0 0 0 0-1H2.5A1.5 1.5 0 0 0 1 2.5v11z"
-                                                    fill-rule="evenodd"></path>
-                                            </svg>
-                                        </button>
-                                        <button
-                                            class="text-[var(--text-secondary)] hover:text-red-500 transition-colors">
-                                            <svg fill="currentColor" height="16" viewBox="0 0 16 16" width="16"
-                                                xmlns="http://www.w3.org/2000/svg">
-                                                <path
-                                                    d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V6z">
-                                                </path>
-                                                <path
-                                                    d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1v1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4H4.118zM2.5 3V2h11v1h-11z"
-                                                    fill-rule="evenodd"></path>
-                                            </svg>
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        `;
-                        videosContainer.appendChild(videoElement);
-                    });
-                } else {
-                    noVideosMessage.style.display = "block";
-                }
-            } catch (error) {
-                console.error("Error fetching videos:", error);
-            }
-        }
-
         async function fetchOngoingTranscodes() {
             try {
                 const response = await fetch("/api/transcoding_status");
@@ -563,48 +517,43 @@
             }
         }
 
-        async function fetchVideos() {
+        async function fetchAndDisplayVideos() {
             const videosContainer = document.getElementById("videos-container");
-            if (!videosContainer) return;
 
             try {
                 const response = await fetch("/api/videos");
-                if (!response.ok) {
-                    throw new Error("Failed to fetch videos");
-                }
                 const videos = await response.json();
 
-                videosContainer.innerHTML = ""; // Clear previous content
+                videosContainer.innerHTML = "";
 
-                if (videos.length === 0) {
-                    const noVideosMessage = document.createElement("div");
-                    noVideosMessage.id = "no-videos-message";
-                    noVideosMessage.className = "col-span-full text-center text-[var(--text-secondary)] text-sm py-8";
-                    noVideosMessage.innerHTML = `
-                        No videos found.
-                        <a class="text-[var(--primary-color)] hover:underline" href="#"
-                            onclick="document.getElementById('dropzone-file').click(); return false;">
-                            Upload your first video!
-                        </a>
-                    `;
-                    videosContainer.appendChild(noVideosMessage);
-                } else {
-                    videos.forEach((video) => {
-                        const videoElement = document.createElement("div");
-                        videoElement.className =
-                            "bg-[var(--background-color)] rounded-lg overflow-hidden group border border-[var(--accent-color)] hover:border-[var(--primary-color)] transition-all duration-300 hover:shadow-2xl hover:scale-[1.02]";
-
+                if (videos.length > 0) {
+                    videos.forEach(video => {
+                        const videoElement = document.createElement('div');
                         const presets = video.presets.join(", ");
+
+                        videoElement.className =
+                            "bg-[var(--background-color)] rounded-lg overflow-hidden group border border-[var(--accent-color)] hover:border-[var(--primary-color)] transition-all duration-300 hover:shadow-2xl hover:scale-105";
 
                         videoElement.innerHTML = `
                             <div class="relative aspect-video bg-[var(--accent-color)]">
-                                <img alt="Video thumbnail" class="object-cover w-full h-full" src="${video.thumbnail_url}" />
-                                <div class="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                                    <button class="text-[var(--primary-color)] icon-glow">
-                                        <svg class="w-12 h-12" fill="currentColor" viewBox="0 0 20 20"
-                                            xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd"></path></svg>
+                                <img alt="Thumbnail"
+                                    class="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                                    src="${video.thumbnail_url}" />
+                                <div
+                                    class="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
+                                    <button
+                                        class="play-video-button flex h-12 w-12 items-center justify-center rounded-full bg-[var(--primary-color)] text-white transition-transform duration-300 hover:scale-110"
+                                        data-video-url="${video.hls_url}" data-sprite-url="${video.sprite}">
+                                        <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                                            xmlns="http://www.w3.org/2000/svg">
+                                            <path d="M5 3l14 9-14 9V3z" stroke-linecap="round" stroke-linejoin="round"
+                                                stroke-width="2"></path>
+                                        </svg>
                                     </button>
                                 </div>
+                                <button class="delete-video-button absolute top-2 right-2 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-black/50 text-white opacity-0 transition-all hover:bg-red-600 group-hover:opacity-100" data-video-id="${video.video_id}">
+                                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                                </button>
                             </div>
                             <div class="p-4">
                                 <h3 class="text-md font-semibold text-[var(--text-primary)] truncate" title="${video.base_name}">${video.base_name}</h3>
@@ -616,18 +565,140 @@
                         `;
                         videosContainer.appendChild(videoElement);
                     });
+                } else {
+                    videosContainer.innerHTML = `<p class="text-center text-[var(--text-secondary)] col-span-full">No videos found.</p>`;
                 }
             } catch (error) {
                 console.error("Error fetching videos:", error);
-                videosContainer.innerHTML = `<div class="col-span-full text-center text-red-400 text-sm py-8">Error loading videos. Please try again later.</div>`;
+                videosContainer.innerHTML = `<p class="text-center text-red-400 col-span-full">Error fetching videos.</p>`;
             }
         }
 
+        const videoPlayerModal = document.getElementById("video-player-modal");
+        const playerContainer = document.getElementById("player-container");
+        const closeModalButton = document.getElementById("close-modal-button");
+        const videosContainer = document.getElementById("videos-container");
+        let player;
+
+        async function openVideoPlayer(videoUrl, spriteUrl, thumbnailUrl) {
+            if (player) {
+                try {
+                    player.destroy();
+                } catch {
+                    // pass
+                }
+            }
+
+            const videoElement = document.createElement('div');
+            videoElement.id = 'video-player';
+            videoElement.playsinline = true;
+            videoElement.controls = true;
+
+            videoElement.src = videoUrl;
+
+            playerContainer.innerHTML = '';
+            playerContainer.appendChild(videoElement);
+
+            player = await VidstackPlayer.create({
+                target: '#video-player',
+                title: 'Sprite Fight',
+                src: videoUrl,
+                poster: thumbnailUrl,
+                layout: new PlyrLayout({
+                    thumbnails: spriteUrl,
+                }),
+            });
+
+            videoPlayerModal.classList.remove("hidden");
+            videoPlayerModal.classList.add("flex");
+            player.play();
+        }
+
+        function closeVideoPlayer() {
+            if (player) {
+                player.pause();
+            }
+            videoPlayerModal.classList.add("hidden");
+            videoPlayerModal.classList.remove("flex");
+        }
+
+        const deleteConfirmModal = document.getElementById("delete-confirm-modal");
+        const confirmDeleteButton = document.getElementById("confirm-delete-button");
+        const cancelDeleteButton = document.getElementById("cancel-delete-button");
+        let videoIdToDelete = null;
+
+        function showDeleteConfirmModal(videoId) {
+            videoIdToDelete = videoId;
+            deleteConfirmModal.classList.remove("hidden");
+            deleteConfirmModal.classList.add("flex");
+        }
+
+        function hideDeleteConfirmModal() {
+            videoIdToDelete = null;
+            deleteConfirmModal.classList.add("hidden");
+            deleteConfirmModal.classList.remove("flex");
+        }
+
+        async function deleteVideo() {
+            if (!videoIdToDelete) return;
+
+            try {
+                const response = await fetch(`/api/video/${videoIdToDelete}`, {
+                    method: 'DELETE',
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.message || 'Failed to delete video.');
+                }
+
+                const videoElement = document.querySelector(`[data-video-id="${videoIdToDelete}"]`).closest('.group').parentElement;
+                if (videoElement) {
+                    videoElement.remove();
+                }
+
+                hideDeleteConfirmModal();
+            } catch (error) {
+                console.error('Error deleting video:', error);
+                alert(`Error: ${error.message}`);
+                hideDeleteConfirmModal();
+            }
+        }
+
+        videosContainer.addEventListener("click", (e) => {
+            const playButton = e.target.closest(".play-video-button");
+            const deleteButton = e.target.closest(".delete-video-button");
+
+            if (deleteButton) {
+                e.stopPropagation();
+                const videoId = deleteButton.dataset.videoId;
+                showDeleteConfirmModal(videoId);
+                return;
+            }
+
+            if (playButton) {
+                const videoUrl = playButton.dataset.videoUrl;
+                const spriteUrl = playButton.dataset.spriteUrl || null; // Optional sprite URL
+                const thumbnailUrl = playButton.closest('.group').querySelector('img').src;
+                openVideoPlayer(videoUrl, spriteUrl, thumbnailUrl);
+            }
+        });
+
+        closeModalButton.addEventListener("click", closeVideoPlayer);
+        confirmDeleteButton.addEventListener("click", deleteVideo);
+        cancelDeleteButton.addEventListener("click", hideDeleteConfirmModal);
+
+        videoPlayerModal.addEventListener("click", (e) => {
+            if (e.target === videoPlayerModal) {
+                closeVideoPlayer();
+            }
+        });
+
         document.addEventListener("DOMContentLoaded", () => {
-            fetchVideos();
+            fetchAndDisplayVideos();
             fetchOngoingTranscodes();
 
-            setInterval(fetchVideos, 5000);
+            setInterval(fetchAndDisplayVideos, 5000);
             setInterval(fetchOngoingTranscodes, 5000); // Refresh every 5 seconds
         });
     </script>
