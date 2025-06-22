@@ -5,6 +5,7 @@ import logging
 import math
 import mimetypes
 import os
+from random import random
 import re
 import subprocess
 import tempfile
@@ -32,6 +33,7 @@ S3_TRANSFER_CONFIG = TransferConfig(multipart_threshold=1 * GB)
 BUCKET_NAME = os.environ.get("BUCKET_NAME")
 
 GENERATE_DASH = os.environ.get("GENERATE_DASH", "false").lower() == "true"
+THUMBNAIL_WIDTH = int(os.environ.get("THUMBNAIL_WIDTH", 1280))
 
 # Paths for binaries in Lambda Layer
 FFMPEG = "/opt/bin/ffmpeg"
@@ -403,7 +405,7 @@ def get_videos():
                     uploaded_at = response.get("LastModified")
 
                     if manifest.get("status") == "processing_complete":
-                        thumbnail_path = manifest.get("sprite", "").replace(
+                        thumbnail_path = manifest.get("thumbnail") or manifest.get("sprite", "").replace(
                             "thumbnails.vtt", "sprite_0.png"
                         )
 
@@ -502,7 +504,6 @@ def _update_manifest(bucket, key, update_data):
             raise
 
     # Update the manifest with new data
-    # deep_update(manifest, update_data)
     manifest.update(update_data)
 
     # Write the updated manifest back to S3
@@ -840,6 +841,33 @@ def process_video(event):
             SPRITE_INTERVAL,
         )
 
+        # Generate thumbnail
+        logger.info("Generating thumbnail")
+        thumb = tempfile.mktemp(suffix=".png")
+        seek = int(duration / 3) if duration > 0 else 0
+        generate_sprite_sheet(
+            tmp_in,
+            thumb,
+            1,
+            1,
+            THUMBNAIL_WIDTH,  # Scale width for thumbnail
+            start_time=seek,
+            sheet_duration=0,  # Single frame
+        )
+
+        # Upload sprite sheet
+        logger.debug("Uploading thumbnail")
+        s3.upload_file(
+            thumb,
+            bucket,
+            output_prefix + "thumbnail/" + f"thumbnail.png",
+            ExtraArgs={"ContentType": "image/png"},
+        )
+        try:
+            os.remove(thumb)
+        except OSError:
+            pass
+
         # Upload VTT file
         logger.info("Uploading VTT file")
         s3.upload_file(
@@ -913,8 +941,8 @@ def process_video(event):
             OutputBucketName=bucket,
             OutputKey=f"{output_prefix}{job_name}.json",
         )
-        
-        output_prefix = output_prefix.replace("processed/", "/", 1).replace("//", "/")
+
+        output_prefix = output_prefix.replace("/processed/", "/", 1).replace("//", "/")
         final_manifest_update = {
             "status": "processing_complete",
             "video_id": os.path.basename(key),
@@ -925,6 +953,7 @@ def process_video(event):
             "hls": output_prefix + "hls/master.m3u8",
             "dash": output_prefix + "dash/stream.mpd",
             "transcription_job": job_name,
+            "thumbnail": output_prefix + "thumbnail/thumbnail.png",
         }
         if not GENERATE_DASH:
             final_manifest_update.pop("dash", None)
