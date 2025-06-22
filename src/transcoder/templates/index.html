@@ -611,7 +611,14 @@
 
             videoPlayerModal.classList.remove("hidden");
             videoPlayerModal.classList.add("flex");
-            player.play();
+            const interval = setInterval(() => {
+                player.play().then(() => {
+                    clearInterval(interval);
+                    console.log("Playback started successfully.");
+                }).catch((err) => {
+                    // pass
+                });
+            }, 100);
         }
 
         function closeVideoPlayer() {
