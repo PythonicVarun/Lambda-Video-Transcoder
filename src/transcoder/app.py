@@ -12,12 +12,15 @@ import time
 import urllib.parse
 
 import boto3
+import serverless_wsgi
 from boto3.s3.transfer import TransferConfig
-from flask import Flask, Response, jsonify, redirect, render_template, request, url_for
+from flask import Flask, jsonify, redirect, render_template, request, url_for
 
+# Initialize boto3 clients for S3 and Transcribe
 s3 = boto3.client("s3")
 transcribe = boto3.client("transcribe")
 
+# Initialize Flask app
 app = Flask(__name__)
 
 # Configure logging
@@ -25,26 +28,44 @@ logger = logging.getLogger(__name__)
 log_level = os.environ.get("LOG_LEVEL", "INFO").upper()
 logger.setLevel(log_level)
 
+# --- Constants ---
 GB = 1024**3
 S3_TRANSFER_CONFIG = TransferConfig(multipart_threshold=1 * GB)
-
 ENV_TRUE = ["t", "true", "1", "yes"]
 
-# Bucket Name
+# Supported languages for transcription.
+LANGUAGE_OPTIONS = ["en-IN", "hi-IN"]
+
+# --- Environment Variables ---
+# S3 bucket for video storage.
 BUCKET_NAME = os.environ.get("BUCKET_NAME")
 
+# Feature flags controlled by environment variables.
 GENERATE_DASH = os.environ.get("GENERATE_DASH", "true").lower() in ENV_TRUE
 GENERATE_SUBTITLES = os.environ.get("GENERATE_SUBTITLES", "true").lower() in ENV_TRUE
 
+# Thumbnail dimensions.
 THUMBNAIL_WIDTH = int(os.environ.get("THUMBNAIL_WIDTH", 1280))
 
+# Public URL of the Lambda function, used for constructing media URLs.
 LAMBDA_FUNCTION_URL = os.environ.get("LAMBDA_FUNCTION_URL", "").rstrip("/")
 
-# Paths for binaries in Lambda Layer
+# Configuration for generating thumbnail sprites.
+SPRITE_FPS = int(os.environ.get("SPRITE_FPS", default=1))
+SPRITE_ROWS = int(os.environ.get("SPRITE_ROWS", default=10))
+SPRITE_COLUMNS = int(os.environ.get("SPRITE_COLUMNS", default=10))
+SPRITE_INTERVAL = int(
+    os.environ.get("SPRITE_INTERVAL", 1)
+)  # seconds between frames in sprite
+SPRITE_SCALE_W = int(os.environ.get("SPRITE_SCALE_W", default=180))
+
+# Paths for FFmpeg and FFprobe binaries included in the Lambda Layer.
 FFMPEG = "/opt/bin/ffmpeg"
 FFPROBE = "/opt/bin/ffprobe"
 
-# Allowed Transcribe media formats -> [amr, flac, wav, ogg, mp3, mp4, webm, m4a]
+# fmt: off
+# Supported media formats for AWS Transcribe.
+# See: https://docs.aws.amazon.com/transcribe/latest/dg/how-input.html
 TRANSCRIBE_SUPPORTED_MEDIA_FORMATS = [
     "audio/amr", "audio/x-amr",                     # amr
     "audio/flac", "audio/x-flac",                   # flac
@@ -55,8 +76,9 @@ TRANSCRIBE_SUPPORTED_MEDIA_FORMATS = [
     "audio/webm", "video/webm",                     # webm
     "audio/m4a", "video/m4a"                        # m4a
 ]
+# fmt: on
 
-# Video presets ordered highest→lowest
+# Video presets for transcoding, ordered from highest to lowest quality.
 ALL_PRESETS = [
     {"name": "2160p", "width": 3840, "height": 2160, "bitrate": "8000k"},
     {"name": "1440p", "width": 2560, "height": 1440, "bitrate": "5000k"},
@@ -66,41 +88,56 @@ ALL_PRESETS = [
     {"name": "360p", "width": 640, "height": 360, "bitrate": "800k"},
 ]
 
-# Sprite config
-SPRITE_FPS = 1
-SPRITE_ROWS = 10
-SPRITE_COLUMNS = 10
-SPRITE_INTERVAL = 1  # seconds between frames in sprite
-SPRITE_SCALE_W = 178
-
-
-# Transcription language
-LANGUAGE_OPTIONS = ["en-IN", "hi-IN"]
-
 
 def lambda_handler(event, context):
+    """
+    AWS Lambda handler function.
+
+    This function acts as the main entry point for the Lambda function.
+    It determines the event source (S3 or API Gateway) and routes the
+    request to the appropriate handler.
+    """
     logger.debug("Received event: %s", json.dumps(event, indent=2))
+    # Route S3 events.
     if "Records" in event and event["Records"][0].get("s3"):
-        logger.info("Processing S3 event")
-        return process_video(event)
+        key = urllib.parse.unquote_plus(event["Records"][0]["s3"]["object"]["key"])
+        if key.startswith("uploads/"):
+            logger.info("Processing S3 event for new video upload")
+            return process_video(event)
+        elif (
+            key.startswith("processed/")
+            and "/transcripts/" in key
+            and key.endswith(".json")
+        ):
+            logger.info("Processing S3 event for transcription result")
+            return process_transcription_result(event)
+        else:
+            logger.debug("S3 event for other file, ignoring: %s", key)
+            return {
+                "status": "ignored",
+                "message": f"S3 event for key {key} is not a video upload or transcription result",
+            }
+    # Route API Gateway HTTP requests.
     elif event.get("requestContext", {}).get("http"):
-        # This is a request from API Gateway
+        # API Gateway requests
         logger.info("Processing API Gateway request")
-        import serverless_wsgi
 
         return serverless_wsgi.handle_request(app, event, context)
     else:
+        # Fallback for other invocation types (e.g., direct invocation).
         logger.info("Processing stream handler request")
         return stream_handler(event)
 
 
 @app.route("/")
 def index():
+    """Renders the main upload page."""
     return render_template("index.html")
 
 
 @app.route("/upload", methods=["POST"])
 def upload():
+    """Handles single file uploads."""
     if "video" not in request.files:
         logger.warning("Upload attempt with no video file.")
         return "No video file found", 400
@@ -123,6 +160,10 @@ def upload():
 
 @app.route("/create_multipart_upload", methods=["POST"])
 def create_multipart_upload():
+    """
+    Initiates a multipart upload and returns presigned URLs for each part.
+    This allows for large file uploads directly from the client-side.
+    """
     data = request.get_json()
     file_name = data.get("fileName")
     file_size = data.get("fileSize")
@@ -173,6 +214,9 @@ def create_multipart_upload():
 
 @app.route("/complete_multipart_upload", methods=["POST"])
 def complete_multipart_upload():
+    """
+    Completes a multipart upload after all parts have been uploaded from the client.
+    """
     data = request.get_json()
     file_name = data.get("fileName")
     upload_id = data.get("uploadId")
@@ -208,6 +252,13 @@ def complete_multipart_upload():
 
 @app.route("/status/<video_id>")
 def status(video_id):
+    """
+    Checks the processing status of a video.
+
+    It can handle both original video filenames and process IDs (MD5 hashes).
+    If the status is not found, it checks if the original upload exists
+    to determine if it's still processing.
+    """
     if not BUCKET_NAME:
         logger.error("Cannot get status: BUCKET_NAME not configured.")
         return (
@@ -253,64 +304,6 @@ def status(video_id):
         manifest = json.loads(manifest_data)
         logger.debug("Found manifest for '%s': %s", video_id, manifest)
 
-        # Check transcription status
-        transcription_job_name = manifest.get("transcription_job")
-        if GENERATE_SUBTITLES and transcription_job_name:
-            try:
-                job_status_response = transcribe.get_transcription_job(
-                    TranscriptionJobName=transcription_job_name
-                )
-                job_status = job_status_response["TranscriptionJob"]
-                transcription_status = job_status["TranscriptionJobStatus"]
-                manifest["transcription_status"] = transcription_status
-                logger.info(
-                    "Transcription status for '%s' is %s",
-                    video_id,
-                    transcription_status,
-                )
-
-                if transcription_status == "COMPLETED":
-                    transcript_s3_uri = job_status["Transcript"]["TranscriptFileUri"]
-                    transcript_key = "/".join(transcript_s3_uri.split("/")[3:])
-                    manifest["transcript_key"] = transcript_key
-                elif transcription_status == "FAILED":
-                    failure_reason = job_status.get("FailureReason")
-                    manifest["transcription_failure_reason"] = failure_reason
-                    logger.warning(
-                        "Transcription failed for '%s': %s", video_id, failure_reason
-                    )
-
-                if transcription_status in ["COMPLETED", "FAILED"]:
-                    # Clean up the temporary audio file if it exists
-                    process_id = manifest.get("process_id")
-                    if process_id:
-                        audio_key = f"processed/{process_id}/audio.wav"
-                        try:
-                            # Check if the converted audio file exists before deleting
-                            s3.head_object(Bucket=BUCKET_NAME, Key=audio_key)
-                            logger.info(
-                                "Transcription complete, deleting temporary audio file: %s",
-                                audio_key,
-                            )
-                            s3.delete_object(Bucket=BUCKET_NAME, Key=audio_key)
-                        except s3.exceptions.ClientError as e:
-                            if e.response["Error"]["Code"] == "NoSuchKey":
-                                # File doesn't exist, which is fine.
-                                pass
-                            else:
-                                # Another S3 error occurred
-                                logger.warning(
-                                    "Error checking/deleting temporary audio file %s: %s",
-                                    audio_key,
-                                    e,
-                                )
-
-            except transcribe.exceptions.NotFoundException:
-                logger.warning(
-                    "Transcription job '%s' not found.", transcription_job_name
-                )
-                manifest["transcription_status"] = "NOT_FOUND"
-
         return jsonify(manifest)
     except s3.exceptions.ClientError as e:
         if e.response["Error"]["Code"] == "NoSuchKey":
@@ -341,6 +334,9 @@ def status(video_id):
 
 @app.route("/api/transcoding_status")
 def get_transcoding_status():
+    """
+    API endpoint to get the status of all videos currently being processed.
+    """
     if not BUCKET_NAME:
         logger.error("Cannot get transcoding status: BUCKET_NAME not configured.")
         return (
@@ -388,6 +384,9 @@ def get_transcoding_status():
 
 @app.route("/api/videos")
 def get_videos():
+    """
+    API endpoint to get a list of all successfully processed videos.
+    """
     if not BUCKET_NAME:
         logger.error("Cannot get videos: BUCKET_NAME not configured.")
         return (
@@ -416,19 +415,46 @@ def get_videos():
                             "sprite", ""
                         ).replace("thumbnails.vtt", "sprite_0.png")
 
-                        videos.append(
-                            {
-                                "video_id": manifest.get("video_id"),
-                                "base_name": manifest.get("base_name"),
-                                "sprite": url_for("stream", key=manifest.get("sprite")),
-                                "thumbnail_url": url_for("stream", key=thumbnail_path),
-                                "hls_url": url_for("stream", key=manifest.get("hls")),
-                                "presets": manifest.get("presets", []),
-                                "uploaded_at": (
-                                    uploaded_at.isoformat() if uploaded_at else None
-                                ),
-                            }
-                        )
+                        video_data = {
+                            "video_id": manifest.get("video_id"),
+                            "base_name": manifest.get("base_name"),
+                            "sprite": url_for(
+                                "stream", key=clean_key(manifest.get("sprite"))
+                            ),
+                            "thumbnail_url": url_for(
+                                "stream", key=clean_key(thumbnail_path)
+                            ),
+                            "hls_url": url_for(
+                                "stream", key=clean_key(manifest.get("hls"))
+                            ),
+                            "presets": manifest.get("presets", []),
+                            "uploaded_at": (
+                                uploaded_at.isoformat() if uploaded_at else None
+                            ),
+                        }
+
+                        subtitles = []
+                        lang = manifest.get("language_code")
+                        srt_key = manifest.get("srt_key")
+                        if lang and srt_key:
+                            srt_key = f"processed/{srt_key}"
+                            try:
+                                s3.head_object(Bucket=BUCKET_NAME, Key=srt_key)
+                                subtitles.append(
+                                    {
+                                        "lang": lang,
+                                        "url": url_for(
+                                            "stream", key=clean_key(srt_key)
+                                        ),
+                                    }
+                                )
+                            except s3.exceptions.ClientError:
+                                pass  # srt not found
+
+                        if subtitles:
+                            video_data["subtitles"] = subtitles
+
+                        videos.append(video_data)
                 except s3.exceptions.ClientError as e:
                     if e.response["Error"]["Code"] == "NoSuchKey":
                         logger.warning(
@@ -453,6 +479,10 @@ def get_videos():
 
 @app.route("/api/video/<video_id>", methods=["DELETE"])
 def delete_video(video_id):
+    """
+    API endpoint to delete a video and all its associated files from S3.
+    This includes the original upload, processed files, and manifests.
+    """
     if not BUCKET_NAME:
         logger.error("Cannot delete video: BUCKET_NAME not configured.")
         return (
@@ -518,6 +548,10 @@ def delete_video(video_id):
 
 @app.route("/stream/<path:key>")
 def stream(key):
+    """
+    Generates a presigned URL to stream a file from S3.
+    This provides secure, temporary access to media files.
+    """
     safe_key = os.path.normpath(key)
 
     if safe_key.startswith(".."):
@@ -547,7 +581,22 @@ def stream(key):
         )
 
 
+def clean_key(key):
+    """
+    Removes the 'processed/' prefix from an S3 key if it exists.
+    """
+    if key:
+        if key.startswith("processed/"):
+            return key.replace("processed/", "", 1)
+        elif "processed/" in key:
+            return key.split("processed/", 1)[1].lstrip("/")
+    return key
+
+
 def probe_resolution(path):
+    """
+    Uses ffprobe to get the width and height of a video file.
+    """
     cmd = [
         FFPROBE,
         "-v",
@@ -566,23 +615,30 @@ def probe_resolution(path):
 
 
 def _update_manifest(bucket, key, update_data):
+    """
+    Atomically updates a JSON manifest file in S3.
+
+    It reads the existing manifest, updates it with new data,
+    and writes it back to S3. If the manifest doesn't exist,
+    it creates a new one.
+    """
     try:
-        # Try to get the existing manifest
+        # Try to get the existing manifest.
         response = s3.get_object(Bucket=bucket, Key=key)
         manifest_data = response["Body"].read().decode("utf-8")
         manifest = json.loads(manifest_data)
     except s3.exceptions.ClientError as e:
         if e.response["Error"]["Code"] == "NoSuchKey":
-            # If not found, start with an empty manifest
+            # If not found, start with an empty manifest.
             manifest = {}
         else:
-            # For other errors, re-raise the exception
+            # For other errors, re-raise the exception.
             raise
 
-    # Update the manifest with new data
+    # Update the manifest with new data.
     manifest.update(update_data)
 
-    # Write the updated manifest back to S3
+    # Write the updated manifest back to S3.
     s3.put_object(
         Bucket=bucket,
         Key=key,
@@ -592,10 +648,16 @@ def _update_manifest(bucket, key, update_data):
 
 
 def select_presets(src_w, src_h):
+    """
+    Selects video presets that are not larger than the source resolution.
+    """
     return [p for p in ALL_PRESETS if p["width"] <= src_w and p["height"] <= src_h]
 
 
 def get_video_duration(video_path):
+    """
+    Uses ffprobe to get the duration of a video file in seconds.
+    """
     result = subprocess.run(
         [
             FFPROBE,
@@ -619,6 +681,9 @@ def get_video_duration(video_path):
 
 
 def format_timestamp(seconds):
+    """
+    Formats seconds into a VTT-compatible timestamp (HH:MM:SS.mmm).
+    """
     h = int(seconds // 3600)
     m = int((seconds % 3600) // 60)
     s = seconds % 60
@@ -631,6 +696,12 @@ def format_timestamp(seconds):
 def generate_vtt(
     video_path, sprite_prefix, output_vtt_path, cols, rows, scale_width, interval=1
 ):
+    """
+    Generates a VTT file for thumbnail sprites.
+
+    The VTT file contains cues that map timestamps to specific regions
+    in the sprite sheet, enabling thumbnail previews on video players.
+    """
     duration = get_video_duration(video_path)
     orig_w, orig_h = probe_resolution(video_path)
     thumb_w = scale_width
@@ -664,7 +735,7 @@ def generate_vtt(
         )
         lines.append("")  # blank line between cues
 
-    # Write to .vtt
+    # Write the VTT content to file.
     with open(output_vtt_path, "w", encoding="utf-8") as f:
         f.write("\n".join(lines))
 
@@ -672,6 +743,9 @@ def generate_vtt(
 def generate_sprite_sheet(
     input_video, output_path, cols, rows, scale_width, start_time=0, sheet_duration=None
 ):
+    """
+    Generates a single sprite sheet from a video using FFmpeg.
+    """
     tile_filter = f"fps=1,scale={scale_width}:-1,tile={cols}x{rows}"
     cmd = [FFMPEG, "-y", "-loglevel", "error"]
     if start_time and start_time > 0:
@@ -686,17 +760,30 @@ def generate_sprite_sheet(
 
 
 def process_video(event):
+    """
+    Main video processing function, triggered by an S3 upload event.
+
+    Steps:
+    1. Downloads the video from S3.
+    2. Calculates an MD5 hash to use as a unique process ID.
+    3. Probes video resolution to select appropriate transcoding presets.
+    4. Creates an initial manifest file and a redirect file in S3.
+    5. Transcodes the video into multiple resolutions (HLS and optionally DASH).
+    6. Generates thumbnail sprites and a VTT file.
+    7. Starts transcription jobs (if enabled).
+    8. Updates the manifest with the final status upon completion.
+    """
     record = event["Records"][0]["s3"]
     bucket = record["bucket"]["name"]
     key = urllib.parse.unquote_plus(record["object"]["key"])
     logger.info("Starting video processing for s3://%s/%s", bucket, key)
 
-    # Download source to temp
+    # Download the source video to a temporary file.
     tmp_in = tempfile.mktemp(suffix=os.path.basename(key))
     logger.info("Downloading to %s", tmp_in)
     s3.download_file(bucket, key, tmp_in, Config=S3_TRANSFER_CONFIG)
 
-    # Compute MD5 hash of the input file
+    # Compute MD5 hash of the input file to use as a unique process ID.
     md5_hash = hashlib.md5()
     with open(tmp_in, "rb") as f:
         for chunk in iter(lambda: f.read(8192), b""):
@@ -704,7 +791,7 @@ def process_video(event):
     file_md5 = md5_hash.hexdigest()
     logger.info("Calculated MD5 hash: %s", file_md5)
 
-    # Probe and select
+    # Probe video resolution and select appropriate presets.
     src_w, src_h = probe_resolution(tmp_in)
     logger.info("Source resolution: %dx%d", src_w, src_h)
     presets = select_presets(src_w, src_h)
@@ -716,18 +803,20 @@ def process_video(event):
     output_prefix = f"processed/{file_md5}/"
     manifest_key = output_prefix + "manifest.json"
 
-    # Initial manifest update
+    # Create an initial manifest to track processing status.
     initial_manifest = {
         "status": "processing",
         "process_id": file_md5,
         "video_id": os.path.basename(key),
         "base_name": base_name,
         "presets": {p["name"]: "pending" for p in presets},
+        "transcription_languages": LANGUAGE_OPTIONS if GENERATE_SUBTITLES else [],
     }
     logger.info("Creating initial manifest at %s", manifest_key)
     _update_manifest(bucket, manifest_key, initial_manifest)
 
-    # Create a redirect file from base_name to process_id
+    # Create a redirect file from the original filename to the process ID
+    # for easier status lookups.
     redirect_key = f"processed/{base_name}.json"
     redirect_content = {"process_id": file_md5}
     s3.put_object(
@@ -739,10 +828,10 @@ def process_video(event):
     logger.info("Created redirect file at %s", redirect_key)
 
     try:
-        # HLS generation
+        # Generate HLS streams for each selected preset.
         for p in presets:
             logger.info("Processing preset: %s", p["name"])
-            # Update preset status to 'processing'
+            # Update preset status to 'processing'.
             initial_manifest["presets"][p["name"]] = "processing"
             _update_manifest(bucket, manifest_key, initial_manifest)
 
@@ -785,7 +874,7 @@ def process_video(event):
                 playlist,
             ]
             subprocess.check_call(cmd_hls)
-            # upload
+            # Upload the generated HLS files to S3.
             logger.info("Uploading HLS files for %s", p["name"])
             for root, _, files in os.walk(out_hls):
                 for f in files:
@@ -801,13 +890,12 @@ def process_video(event):
                     except:
                         pass
 
-            # Update preset status to 'complete'
+            # Update preset status to 'complete'.
             initial_manifest["presets"][p["name"]] = "complete"
             _update_manifest(bucket, manifest_key, initial_manifest)
             logger.info("Preset %s complete", p["name"])
-            # _update_manifest(bucket, manifest_key, {"presets": {p["name"]: "complete"}})
 
-        # Master HLS playlist
+        # Generate and upload the master HLS playlist.
         logger.info("Generating master HLS playlist")
         master_hls = "#EXTM3U\n"
         for p in presets:
@@ -820,7 +908,7 @@ def process_video(event):
             ContentType="application/vnd.apple.mpegurl",
         )
 
-        # DASH generation using ffmpeg dash muxer
+        # Generate DASH manifest and segments if enabled.
         if GENERATE_DASH:
             logger.info("Generating DASH manifest and segments")
             dash_dir = tempfile.mkdtemp()
@@ -856,7 +944,7 @@ def process_video(event):
                 dash_mpd,
             ]
             subprocess.check_call(cmd_dash)
-            # upload DASH files
+            # Upload the generated DASH files to S3.
             logger.info("Uploading DASH files")
             for root, _, files in os.walk(dash_dir):
                 for f in files:
@@ -872,7 +960,7 @@ def process_video(event):
                     except:
                         pass
 
-        # Create sprite sheet
+        # Generate a sprite sheet for thumbnail previews.
         logger.info("Generating sprite sheet")
         sprite_dir = tempfile.mkdtemp()
         sprite = os.path.join(sprite_dir, "sprite_{i}.png")
@@ -1020,7 +1108,7 @@ def process_video(event):
                 IdentifyLanguage=True,
                 LanguageOptions=LANGUAGE_OPTIONS,
                 OutputBucketName=bucket,
-                OutputKey=f"{output_prefix}{job_name}.json",
+                OutputKey=f"{output_prefix}transcripts/{job_name}.json",
             )
 
         output_prefix = output_prefix.replace("processed/", "", 1)
@@ -1058,6 +1146,130 @@ def process_video(event):
         _update_manifest(bucket, manifest_key, error_manifest_update)
         logger.error("Error processing video %s: %s", key, e, exc_info=True)
         return error_manifest_update
+
+
+def process_transcription_result(event):
+    """
+    Processes the result of a transcription job.
+
+    This function is triggered by an S3 event when a transcription job
+    completes. It updates the corresponding manifest with the transcription
+    results and cleans up temporary files.
+    """
+    record = event["Records"][0]["s3"]
+    bucket = record["bucket"]["name"]
+    transcript_key = urllib.parse.unquote_plus(record["object"]["key"])
+    logger.info("Processing transcription result: s3://%s/%s", bucket, transcript_key)
+
+    # Extract process_id from key: "processed/<process_id>/transcripts/<job_name>.json"
+    match = re.search(r"processed/([^/]+)/transcripts/([^/]+)\.json", transcript_key)
+    if not match:
+        logger.error(
+            "Could not extract process_id and job_name from key: %s", transcript_key
+        )
+        return {"status": "error", "message": "Invalid key format"}
+
+    process_id = match.group(1)
+    job_name = match.group(2)
+    manifest_key = f"processed/{process_id}/manifest.json"
+
+    try:
+        # 1. Get job status from Transcribe API
+        job_status_response = transcribe.get_transcription_job(
+            TranscriptionJobName=job_name
+        )
+        job_status = job_status_response["TranscriptionJob"]
+        transcription_status = job_status["TranscriptionJobStatus"]
+
+        if transcription_status != "COMPLETED":
+            logger.warning(
+                "Transcription job %s is not complete (status: %s). Aborting processing.",
+                job_name,
+                transcription_status,
+            )
+            if transcription_status == "FAILED":
+                _update_manifest(
+                    bucket,
+                    manifest_key,
+                    {
+                        "transcription_status": "FAILED",
+                        "transcription_failure_reason": job_status.get("FailureReason"),
+                    },
+                )
+            return {
+                "status": "ignored",
+                "reason": f"Job status is {transcription_status}",
+            }
+
+        # 2. Read transcript JSON from S3 (the file that triggered this)
+        response = s3.get_object(Bucket=bucket, Key=transcript_key)
+        result_data = json.loads(response["Body"].read().decode("utf-8"))
+        results = result_data.get("results", {})
+        language_code = results.get("language_code")
+        if (
+            not language_code
+            and "language_identification" in results
+            and results["language_identification"]
+        ):
+            language_code = results["language_identification"][0]["code"]
+
+        update_data = {
+            "transcription_status": "COMPLETED",
+            "transcript_key": clean_key(transcript_key),
+        }
+        if language_code:
+            update_data["language_code"] = language_code
+
+        # 3. Get subtitle file paths
+        subtitles_info = job_status.get("Subtitles", {})
+        subtitle_uris = subtitles_info.get("SubtitleFileUris", [])
+        if subtitle_uris:
+            for uri in subtitle_uris:
+                _, format = uri.rsplit(".", 1)
+                parsed_uri = urllib.parse.urlparse(uri)
+                subtitle_key = parsed_uri.path.lstrip("/")
+                if format in ["srt", "vtt"]:
+                    update_data[f"{format}_key"] = clean_key(subtitle_key)
+
+        # 4. Update manifest
+        _update_manifest(bucket, manifest_key, update_data)
+        logger.info(
+            "Manifest %s updated with transcription results for job %s",
+            manifest_key,
+            job_name,
+        )
+
+        # 5. Clean up temporary audio file
+        audio_key = f"processed/{process_id}/audio.wav"
+        try:
+            s3.head_object(Bucket=bucket, Key=audio_key)
+            logger.info(
+                "Transcription complete, deleting temporary audio file: %s", audio_key
+            )
+            s3.delete_object(Bucket=bucket, Key=audio_key)
+        except s3.exceptions.ClientError as e:
+            if e.response["Error"]["Code"] == "NoSuchKey":
+                pass
+            else:
+                logger.warning(
+                    "Error checking/deleting temporary audio file %s: %s", audio_key, e
+                )
+
+        return {"status": "success"}
+
+    except Exception as e:
+        logger.error(
+            "Error processing transcription result for job %s: %s",
+            job_name,
+            e,
+            exc_info=True,
+        )
+        _update_manifest(
+            bucket,
+            manifest_key,
+            {"transcription_status": "FAILED", "transcription_failure_reason": str(e)},
+        )
+        return {"status": "error", "message": str(e)}
 
 
 def stream_handler(event):

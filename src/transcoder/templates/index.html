@@ -194,7 +194,7 @@
         </div>
     </div>
     <script type="module">
-        import { PlyrLayout, VidstackPlayer } from 'https://cdn.vidstack.io/player';
+        import { PlyrLayout, VidstackPlayer, TextTrack } from 'https://cdn.vidstack.io/player';
 
         const uploadButton = document.getElementById("upload-button");
         const dropzoneFileInput = document.getElementById("dropzone-file");
@@ -517,6 +517,13 @@
             }
         }
 
+        const formattedDate = (date) => {
+            const day = String(date.getDate()).padStart(2, '0');
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const year = date.getFullYear();
+            return `${day}-${month}-${year}`;
+        };
+
         async function fetchAndDisplayVideos() {
             const videosContainer = document.getElementById("videos-container");
 
@@ -540,10 +547,10 @@
                                     class="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
                                     src="${video.thumbnail_url}" />
                                 <div
-                                    class="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
+                                    class="absolute inset-0 h-[102%] flex items-center justify-center bg-black/50 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
                                     <button
                                         class="play-video-button flex h-12 w-12 items-center justify-center rounded-full bg-[var(--primary-color)] text-white transition-transform duration-300 hover:scale-110"
-                                        data-video-url="${video.hls_url}" data-sprite-url="${video.sprite}">
+                                        data-video-url="${video.hls_url}" data-sprite-url="${video.sprite}" data-title="${video.base_name}" data-subtitles='${JSON.stringify(video.subtitles)}'>
                                         <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"
                                             xmlns="http://www.w3.org/2000/svg">
                                             <path d="M5 3l14 9-14 9V3z" stroke-linecap="round" stroke-linejoin="round"
@@ -557,7 +564,7 @@
                             </div>
                             <div class="p-4">
                                 <h3 class="text-md font-semibold text-[var(--text-primary)] truncate" title="${video.base_name}">${video.base_name}</h3>
-                                <p class="text-xs text-[var(--text-secondary)]">Uploaded: ${new Date(video.uploaded_at).toLocaleDateString()}</p>
+                                <p class="text-xs text-[var(--text-secondary)]">Uploaded: ${formattedDate(new Date(video.uploaded_at))}</p>
                                 <div class="flex justify-between items-center mt-2">
                                     <span class="text-xs bg-[var(--primary-color)]/20 text-[var(--primary-color)] px-2 py-0.5 rounded-full">${presets}</span>
                                 </div>
@@ -574,13 +581,19 @@
             }
         }
 
+        const getLanguageName = (localeCode) => {
+            const langCode = localeCode.split('-')[0];
+            const displayNames = new Intl.DisplayNames(['en'], { type: 'language' });
+            return displayNames.of(langCode);
+        };
+
         const videoPlayerModal = document.getElementById("video-player-modal");
         const playerContainer = document.getElementById("player-container");
         const closeModalButton = document.getElementById("close-modal-button");
         const videosContainer = document.getElementById("videos-container");
         let player;
 
-        async function openVideoPlayer(videoUrl, spriteUrl, thumbnailUrl) {
+        async function openVideoPlayer(videoTitle, videoUrl, spriteUrl, thumbnailUrl, subtitles) {
             if (player) {
                 try {
                     player.destroy();
@@ -601,20 +614,30 @@
 
             player = await VidstackPlayer.create({
                 target: '#video-player',
-                title: 'Sprite Fight',
+                title: videoTitle,
                 src: videoUrl,
                 poster: thumbnailUrl,
                 layout: new PlyrLayout({
                     thumbnails: spriteUrl,
                 }),
             });
+            subtitles.forEach((s, i) => {
+                const track = new TextTrack({
+                    src: s.url,
+                    label: getLanguageName(s.lang) || s.lang,
+                    language: s.lang,
+                    kind: 'subtitles',
+                    type: s.url.split(".").pop().trim().toLowerCase(),
+                    default: i === 0
+                })
+                player.textTracks.add(track);
+            })
 
             videoPlayerModal.classList.remove("hidden");
             videoPlayerModal.classList.add("flex");
             const interval = setInterval(() => {
                 player.play().then(() => {
                     clearInterval(interval);
-                    console.log("Playback started successfully.");
                 }).catch((err) => {
                     // pass
                 });
@@ -684,10 +707,12 @@
             }
 
             if (playButton) {
+                const videoTitle = playButton.dataset.title || "Video Player";
                 const videoUrl = playButton.dataset.videoUrl;
                 const spriteUrl = playButton.dataset.spriteUrl || null; // Optional sprite URL
                 const thumbnailUrl = playButton.closest('.group').querySelector('img').src;
-                openVideoPlayer(videoUrl, spriteUrl, thumbnailUrl);
+                const subtitles = JSON.parse(playButton.dataset.subtitles || '[]');
+                openVideoPlayer(videoTitle, videoUrl, spriteUrl, thumbnailUrl, subtitles);
             }
         });
 

@@ -2,28 +2,31 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-🔥 A serverless AWS Lambda solution for on-the-fly video transcoding, transcription, and adaptive streaming (HLS & DASH), with a simple Flask-based frontend for uploads.
+🔥 A serverless AWS Lambda solution for on-the-fly video transcoding, transcription, and adaptive streaming (HLS & DASH), with a simple Flask-based frontend for uploads, status tracking, and video management.
 
 This project provides a robust and scalable way to process video files. It includes:
 1.  **S3 Event Trigger:** A Lambda function is triggered when a video is uploaded to an S3 bucket.
-2.  **Video Processing:**
-    *   **Probe Video:** Determines resolution and metadata.
-    *   **Transcode to Multiple Resolutions:** Creates different quality levels for adaptive bitrate streaming.
+2.  **Video Processing Pipeline:**
+    *   **Content-Addressable Storage:** Uses the MD5 hash of the video file as a unique ID to prevent duplicate processing.
+    *   **Transcode to Multiple Resolutions:** Creates different quality levels (e.g., 1080p, 720p, 480p) for adaptive bitrate streaming.
     *   **Generate HLS & DASH Playlists:** Creates manifest files for Apple HLS and MPEG-DASH.
     *   **Create Dynamic Sprite Sheet:** Generates a thumbnail sprite sheet for video scrubbing previews.
-    *   **Transcribe Audio:** Uses Amazon Transcribe to generate a text transcription.
-3.  **Flask Web Interface:**
-    *   A simple web page to upload videos directly to S3.
-    *   A status page to check the transcoding progress.
-    *   A streaming endpoint to serve the transcoded content.
-4.  **API Gateway Integration:** The Flask app is served via API Gateway, allowing public access.
+    *   **Transcribe Audio (Optional):** Uses Amazon Transcribe to generate subtitles.
+3.  **Flask Backend with REST API:**
+    *   Handles large file uploads using S3 multipart uploads.
+    *   Provides API endpoints to list, check status, and delete videos.
+    *   Serves video content using S3 presigned URLs.
+4.  **Direct Access via Lambda Function URL:** The Flask app is served via a Lambda Function URL, providing direct public HTTP access without needing an API Gateway.
 
 ## Features
 -   **Serverless Architecture:** Leverages AWS Lambda, S3, and Amazon Transcribe.
--   **Flask Frontend:** Easy-to-use web interface for video uploads and status checks.
--   **Adaptive Bitrate Streaming:** Outputs HLS and DASH formats.
--   **Automated Transcription:** Integrates with Amazon Transcribe.
--   **Dynamic Thumbnail Sprite Generation:** Creates a sprite sheet based on video duration.
+-   **Content-Addressable:** Video processing is based on file content (MD5 hash), making it idempotent.
+-   **Large File Support:** Handles large video uploads efficiently using S3 multipart uploads.
+-   **Adaptive Bitrate Streaming:** Outputs HLS and (optionally) DASH formats.
+-   **Automated Transcription:** Integrates with Amazon Transcribe (can be disabled).
+-   **Dynamic Thumbnail Sprite Generation:** Creates a sprite sheet for rich player seeking previews.
+-   **REST API:** Provides endpoints for managing videos, suitable for a modern frontend.
+-   **Video Deletion:** API endpoint to delete a video and all its associated assets from S3.
 -   **Docker-based Deployment:** Simplified deployment using a container image.
 
 ## Project Structure
@@ -43,7 +46,7 @@ This project provides a robust and scalable way to process video files. It inclu
 │       └── templates/
 │           └── index.html      # HTML for the upload frontend
 └── tests/
-    └── ...
+    └── test_handler.py
 ```
 
 ## Prerequisites
@@ -52,28 +55,30 @@ This project provides a robust and scalable way to process video files. It inclu
 -   Docker installed
 -   An S3 bucket to store uploads and transcoded files.
 
+## Configuration
+
+The Lambda function is configured using environment variables. Set these in the Lambda function's configuration page in the AWS Console.
+
+| Variable              | Description                                                                                                 | Default   |
+| --------------------- | ----------------------------------------------------------------------------------------------------------- | --------- |
+| `BUCKET_NAME`         | **Required.** The name of the S3 bucket for uploads and transcoded files.                                     | `None`    |
+| `LAMBDA_FUNCTION_URL` | The public URL of the Lambda function. Required for generating correct links in HLS/DASH manifests.         | `""`      |
+| `GENERATE_DASH`       | Set to `"true"` to generate MPEG-DASH manifests alongside HLS.                                              | `"true"`  |
+| `GENERATE_SUBTITLES`  | Set to `"true"` to enable video transcription with Amazon Transcribe.                                       | `"true"`  |
+| `THUMBNAIL_WIDTH`     | The width of the generated thumbnails in the sprite sheet.                                                  | `1280`    |
+| `LOG_LEVEL`           | The logging level for the application.                                                                      | `"INFO"`  |
+| `SPRITE_FPS`          | The frame rate (frames per second) to use for generating the thumbnail sprite.                              | `1`       |
+| `SPRITE_ROWS`         | The number of rows in the thumbnail sprite sheet.                                                           | `10`      |
+| `SPRITE_COLUMNS`      | The number of columns in the thumbnail sprite sheet.                                                        | `10`      |
+| `SPRITE_INTERVAL`     | The interval in seconds between frames captured for the thumbnail sprite.                                   | `1`       |
+| `SPRITE_SCALE_W`      | The width to scale each thumbnail to in the sprite sheet.                                                   | `180`     |
+
+
 ## Deployment Guide 🚀
 
 This project is designed for deployment as a Docker container image to AWS Lambda.
 
-**1. Configure Environment Variables:**
-   - Before building the Docker image, you need to set the `BUCKET_NAME` environment variable. This can be done in a few ways:
-     - **Option A (Hardcode in Dockerfile - for quick tests):**
-       ```dockerfile
-       # In your Dockerfile, before the CMD
-       ENV BUCKET_NAME='your-s3-bucket-name'
-       ```
-     - **Option B (Set in Lambda Console - Recommended):** You will set this in the Lambda function's configuration after deployment. This is the most flexible and secure method.
-
-**2. Review the Dockerfile:**
-   - The `Dockerfile` handles all the necessary steps:
-     - Starts from the official AWS Lambda Python base image.
-     - Installs FFmpeg.
-     - Copies `requirements.txt` and installs Python packages (including Flask and serverless-wsgi).
-     - Copies the `app.py` and the `templates` directory.
-     - Sets the `CMD` to `app.lambda_handler`.
-
-**3. Build and Push Docker Image to Amazon ECR:**
+**1. Build and Push Docker Image to Amazon ECR:**
    - **Create ECR Repository:**
      ```bash
      aws ecr create-repository --repository-name lambda-video-transcoder --image-scanning-configuration scanOnPush=true --region your-aws-region
@@ -89,64 +94,136 @@ This project is designed for deployment as a Docker container image to AWS Lambd
      docker push YOUR_AWS_ACCOUNT_ID.dkr.ecr.your-aws-region.amazonaws.com/lambda-video-transcoder:latest
      ```
 
-**4. Create and Configure the Lambda Function:**
+**2. Create and Configure the Lambda Function:**
    - In the AWS Lambda Console, click **"Create function"**.
    - Select **"Container image"**.
    - **Function name:** `lambda-video-transcoder`.
    - **Container image URI:** Browse and select the `lambda-video-transcoder:latest` image from ECR.
    - **Architecture:** `x86_64`.
-   - **Permissions:** Create a new execution role. You will attach the necessary policies to this role.
+   - **Memory and Timeout:** Increase the memory (e.g., to **2048 MB**) and the timeout (e.g., to **15 minutes**) to handle large video files.
+   - **Permissions:** Create a new execution role. You will attach the necessary policies to this role (see IAM Permissions section below).
    - Click **"Create function"**.
 
-**5. Configure IAM Permissions:**
-   - Go to the IAM console and find the execution role for your Lambda function.
-   - Attach the following managed policies or create more restrictive inline policies:
-     - `AWSLambdaBasicExecutionRole` (should be attached by default)
-     - `AmazonS3FullAccess` (or a policy granting `s3:GetObject`, `s3:PutObject`, `s3:ListBucket` on your specific bucket).
-     - `AmazonTranscribeFullAccess` (or a policy granting `transcribe:StartTranscriptionJob`).
+**3. Set Environment Variables:**
+   - In the Lambda function's configuration page, go to the **"Configuration"** tab and then **"Environment variables"**.
+   - Add the environment variables listed in the **Configuration** section above. `BUCKET_NAME` is required.
 
-**6. Configure Lambda Settings and Triggers:**
-   - In the Lambda function console, go to the **"Configuration"** tab.
-   - **Environment variables:**
-     - Click **"Edit"** and add a new variable:
-       - **Key:** `BUCKET_NAME`
-       - **Value:** `your-s3-bucket-name` (the name of your S3 bucket)
-   - **General configuration:**
-     - **Memory:** Increase to at least **2048 MB**.
-     - **Timeout:** Increase to **15 minutes** (900 seconds).
-   - **Triggers:**
-     - **API Gateway Trigger (for the Flask App):**
-       - Click **"Add trigger"**, select **"API Gateway"**.
-       - Choose **"Create an API"**, select **"HTTP API"**, and **"Open"** security.
-       - Note the **API endpoint URL**.
-     - **S3 Trigger (for Video Processing):**
-       - Click **"Add trigger"**, select **"S3"**.
-       - **Bucket:** Select your S3 bucket (`your-s3-bucket-name`).
-       - **Event types:** `All object create events`.
+**4. Add S3 Triggers:**
+   - In the function's **"Function overview"** panel, click **"+ Add trigger"**.
+   - **Trigger 1 (For Video Uploads):**
+       - Select **"S3"** as the source.
+       - Choose your bucket (`BUCKET_NAME`).
+       - **Event type:** `All object create events`.
        - **Prefix:** `uploads/`
-       - Acknowledge the warning and click **"Add"**.
+       - Acknowledge the recursive invocation warning and click **"Add"**.
+   - Click **"+ Add trigger"** again.
+   - **Trigger 2 (For Processed File Events):**
+       - Select **"S3"** as the source.
+       - Choose your bucket (`BUCKET_NAME`).
+       - **Event type:** `All object create events`.
+       - **Prefix:** `processed/`
+       - **Suffix:** `.json`
+       - Acknowledge the recursive invocation warning and click **"Add"**. This trigger handles events for JSON files in the `processed/` directory, such as transcription job results from Amazon Transcribe. The Lambda function code is designed to handle these events without causing infinite loops.
 
-## How to Use
+**5. Create Function URL:**
+   - In the function's configuration page, go to the **"Configuration"** tab and then **"Function URL"**.
+   - Click **"Create function URL"**.
+   - **Auth type:** `NONE`.
+   - **CORS:** Configure CORS to allow access from your frontend's domain. For testing, you can enable it for all origins.
+   - Click **"Save"**.
+   - Copy the generated Function URL and set it as the `LAMBDA_FUNCTION_URL` environment variable.
 
-1.  **Open the Web Frontend:**
-    - Navigate to the **API endpoint URL** you received when creating the API Gateway trigger.
-2.  **Upload a Video:**
-    - Use the form to select and upload a video file.
-    - Upon successful upload, you will be redirected to a status page.
-3.  **Processing:**
-    - The upload triggers the S3 event, which invokes the same Lambda function to run the `process_video` logic.
-    - This will transcode the video, create playlists, generate the sprite sheet, and start the transcription job.
-4.  **Check Status:**
-    - The status page will eventually show "Transcoding complete!" once the main HLS playlist is available.
-5.  **Accessing Transcoded Content:**
-    - The transcoded files are stored in your S3 bucket under the `processed/` prefix.
-    - The Flask app also provides a `/stream/` endpoint that can serve these files, which can be used by a video player.
+## IAM Permissions
 
-## Important Notes
-- **Costs:** Be mindful of AWS costs for S3, Lambda, ECR, API Gateway, and Amazon Transcribe.
-- **Error Handling:** For production, consider adding more robust error handling and a dead-letter queue (DLQ) for the Lambda function.
-- **Large Files:** For files larger than a few hundred MBs, consider using S3 presigned URLs for direct browser uploads to avoid passing the file through the Lambda function's memory.
-- **Security:** For production, secure your API Gateway endpoint and use more restrictive IAM policies.
+Your Lambda execution role needs the following permissions. Attach these policies to the role.
+
+1.  **S3 Access:** Full access to the specific S3 bucket used by the function.
+    ```json
+    {
+        "Version": "2012-10-17",
+        "Statement": [
+            {
+                "Effect": "Allow",
+                "Action": "s3:*",
+                "Resource": [
+                    "arn:aws:s3:::YOUR_BUCKET_NAME",
+                    "arn:aws:s3:::YOUR_BUCKET_NAME/*"
+                ]
+            }
+        ]
+    }
+    ```
+2.  **AWS Transcribe Access:** (If `GENERATE_SUBTITLES` is enabled)
+    -  `transcribe:StartTranscriptionJob`
+    -  `transcribe:GetTranscriptionJob`
+    -  The managed policy `AmazonTranscribeFullAccess` can be used for simplicity.
+
+3.  **CloudWatch Logs:** The default `AWSLambdaBasicExecutionRole` policy is usually sufficient for logging.
+    - `logs:CreateLogGroup`
+    - `logs:CreateLogStream`
+    - `logs:PutLogEvents`
+
+## S3 Bucket CORS Configuration
+
+To allow the frontend to perform multipart uploads directly to S3 and to support video streaming, you need to configure Cross-Origin Resource Sharing (CORS) on your S3 bucket.
+
+Go to your S3 bucket in the AWS Console, select the **Permissions** tab, and in the **Cross-origin resource sharing (CORS)** section, paste the following JSON configuration:
+
+```json
+[
+    {
+        "AllowedHeaders": [
+            "*"
+        ],
+        "AllowedMethods": [
+            "GET",
+            "PUT",
+            "POST",
+            "DELETE",
+            "HEAD"
+        ],
+        "AllowedOrigins": [
+            "*"
+        ],
+        "ExposeHeaders": [
+            "ETag"
+        ],
+        "MaxAgeSeconds": 3000
+    }
+]
+```
+
+## API Endpoints
+
+The Flask application provides several API endpoints for interaction.
+
+| Method | Endpoint                        | Description                                                                 |
+| ------ | ------------------------------- | --------------------------------------------------------------------------- |
+| `POST` | `/create_multipart_upload`      | Initializes a multipart upload and returns presigned URLs for each chunk.   |
+| `POST` | `/complete_multipart_upload`    | Finalizes the multipart upload after all chunks are uploaded.               |
+| `GET`  | `/status/<video_id>`            | Gets the detailed processing status of a specific video.                    |
+| `GET`  | `/api/videos`                   | Returns a list of all successfully processed videos.                        |
+| `GET`  | `/api/transcoding_status`       | Returns a list of videos that are currently in the "processing" state.      |
+| `DELETE`| `/api/video/<video_id>`         | Deletes a video and all its associated files (HLS, DASH, sprites, etc.).    |
+| `GET`  | `/stream/<path:key>`            | Redirects to a presigned S3 URL to stream video content.                    |
+
+## How It Works
+
+1.  **Upload:** A user uploads a video file via the frontend. For large files, the frontend uses the multipart upload endpoints to upload the file in chunks directly to the `uploads/` prefix in the S3 bucket.
+2.  **Trigger:** The S3 `put` event triggers the Lambda function.
+3.  **Processing (`process_video`):**
+    *   The function downloads the source video.
+    *   It calculates the file's MD5 hash, which becomes the `process_id`. This ensures that if the same file is uploaded again, it won't be re-processed.
+    *   A redirect file (`processed/<original_filename>.json`) is created to map the original name to the `process_id`.
+    *   A `manifest.json` is created in `processed/<process_id>/` to track the state.
+    *   The video is transcoded into multiple resolutions using FFmpeg. HLS (and optionally DASH) files are generated.
+    *   A thumbnail sprite sheet and VTT file are created for scrubbing previews.
+    *   All artifacts are uploaded to the `processed/<process_id>/` directory in S3.
+    *   The final `manifest.json` is updated with the status `processing_complete` and paths to all assets.
+4.  **Event Handling for Processed Files:** The second S3 trigger is configured for `.json` files in the `processed/` directory. This allows the function to react to events like the completion of an Amazon Transcribe job. The function's logic is designed to handle these events appropriately and avoid infinite recursion from files it generates itself.
+5.  **Status Check:** The frontend polls the `/status/<video_id>` endpoint to monitor the progress from `processing` to `processing_complete`.
+6.  **Playback:** Once complete, the frontend can retrieve the list of videos from `/api/videos` and play them using the HLS or DASH manifest URLs. The `/stream/` endpoint provides the necessary presigned URLs for the player to access the video segments from S3 securely.
 
 ## License
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
