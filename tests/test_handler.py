@@ -1,14 +1,14 @@
-import json
 import os
+
+# Add the src directory to the Python path
+import sys
 import unittest
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 
 import boto3
 from moto import mock_aws
 
-# Add the src directory to the Python path
-import sys
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../src')))
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../src")))
 
 from transcoder.app import app, lambda_handler
 
@@ -53,7 +53,10 @@ class TranscoderTestCase(unittest.TestCase):
         """Test the index route."""
         response = self.client.get("/")
         self.assertEqual(response.status_code, 200)
-        self.assertIn(b"<h2 class=\"text-2xl font-bold text-[var(--text-primary)] mb-6\">Upload Video</h2>", response.data)
+        self.assertIn(
+            b'<h2 class="text-2xl font-bold text-[var(--text-primary)] mb-6">Upload Video</h2>',
+            response.data,
+        )
 
     @patch("transcoder.app.process_video")
     def test_lambda_handler_s3_upload(self, mock_process_video):
@@ -79,9 +82,7 @@ class TranscoderTestCase(unittest.TestCase):
                 {
                     "s3": {
                         "bucket": {"name": "test-bucket"},
-                        "object": {
-                            "key": "processed/some_id/transcripts/job.json"
-                        },
+                        "object": {"key": "processed/some_id/transcripts/job.json"},
                     }
                 }
             ]
