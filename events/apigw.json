@@ -1,0 +1,12 @@
+{
+    "requestContext": {
+        "http": {
+            "method": "GET",
+            "path": "/",
+            "protocol": "HTTP/1.1",
+            "sourceIp": "127.0.0.1",
+            "userAgent": "Mozilla/5.0"
+        }
+    },
+    "isBase64Encoded": false
+}
