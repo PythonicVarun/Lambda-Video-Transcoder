@@ -37,7 +37,9 @@ This project provides a robust and scalable way to process video files. It inclu
 ├── README.md
 ├── requirements.txt
 ├── events/
-│   └── basic.json
+│   ├── apigw.json
+│   ├── transcribe.json
+│   └── video_upload.json
 ├── src/
 │   └── transcoder/
 │       ├── __init__.py
@@ -46,6 +48,8 @@ This project provides a robust and scalable way to process video files. It inclu
 │       └── templates/
 │           └── index.html      # HTML for the upload frontend
 └── tests/
+    ├── __init__.py
+    ├── requirements.txt
     └── test_handler.py
 ```
 
@@ -223,6 +227,24 @@ The Flask application provides several API endpoints for interaction.
 4.  **Event Handling for Processed Files:** The second S3 trigger is configured for `.json` files in the `processed/` directory. This allows the function to react to events like the completion of an Amazon Transcribe job. The function's logic is designed to handle these events appropriately and avoid infinite recursion from files it generates itself.
 5.  **Status Check:** The frontend polls the `/status/<video_id>` endpoint to monitor the progress from `processing` to `processing_complete`.
 6.  **Playback:** Once complete, the frontend can retrieve the list of videos from `/api/videos` and play them using the HLS or DASH manifest URLs. The `/stream/` endpoint provides the necessary presigned URLs for the player to access the video segments from S3 securely.
+
+## Testing
+
+The project includes a suite of unit tests to ensure the reliability of the core logic. The tests use `moto` to mock AWS services, allowing you to run them locally without needing an actual AWS account.
+
+**1. Install Test Dependencies:**
+
+```bash
+pip install -r requirements-test.txt
+```
+
+**2. Run Tests:**
+
+To run the tests, execute the following command from the root of the project directory:
+
+```bash
+python -m unittest tests/test_handler.py
+```
 
 ## License
 
