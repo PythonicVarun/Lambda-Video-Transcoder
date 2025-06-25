@@ -393,6 +393,19 @@
             }
         }
 
+        function sortPresets(presets) {
+            const sortFn = (a, b) => parseInt(a) - parseInt(b);
+            if (Array.isArray(presets)) {
+                return presets.slice().sort(sortFn);
+            } else if (typeof presets === 'object' && presets !== null) {
+                return Object.fromEntries(
+                    Object.entries(presets).sort(([a], [b]) => sortFn(a, b))
+                );
+            }
+
+            throw new Error("Presets must be an object or an array.");
+        }
+
         async function checkStatus(video_id) {
             try {
                 const response = await fetch(`/status/${video_id}`);
@@ -407,9 +420,10 @@
                     let totalPresets = 0;
                     let presetHtml = "";
 
-                    if (data.presets) {
-                        totalPresets = Object.keys(data.presets).length;
-                        for (const [preset, status] of Object.entries(data.presets)) {
+                    const presets = sortPresets(data.presets || {});
+                    if (presets) {
+                        totalPresets = Object.keys(presets).length;
+                        for (const [preset, status] of Object.entries(presets)) {
                             if (status === "complete") {
                                 completedCount++;
                                 presetHtml += `<span class="inline-block bg-green-500/20 text-green-400 px-2 py-0.5 rounded-full text-xs mr-1">${preset}</span>`;
@@ -479,7 +493,7 @@
 
                         let presetHtml = "";
                         let completedCount = 0;
-                        const presets = transcode.presets || {};
+                        const presets = sortPresets(transcode.presets || {});
                         const totalPresets = Object.keys(presets).length;
 
                         for (const [preset, status] of Object.entries(presets)) {
@@ -536,7 +550,7 @@
                 if (videos.length > 0) {
                     videos.forEach(video => {
                         const videoElement = document.createElement('div');
-                        const presets = video.presets.join(", ");
+                        const presets = sortPresets(video.presets || []).join(", ");
 
                         videoElement.className =
                             "bg-[var(--background-color)] rounded-lg overflow-hidden group border border-[var(--accent-color)] hover:border-[var(--primary-color)] transition-all duration-300 hover:shadow-2xl hover:scale-105";
@@ -550,7 +564,7 @@
                                     class="absolute inset-0 h-[102%] flex items-center justify-center bg-black/50 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
                                     <button
                                         class="play-video-button flex h-12 w-12 items-center justify-center rounded-full bg-[var(--primary-color)] text-white transition-transform duration-300 hover:scale-110"
-                                        data-video-url="${video.hls_url}" data-sprite-url="${video.sprite}" data-title="${video.base_name}" data-subtitles='${JSON.stringify(video.subtitles)}'>
+                                        data-video-url="${video.hls_url}" data-sprite-url="${video.sprite}" data-title="${video.base_name}" data-subtitles='${JSON.stringify(video.subtitles || [])}'>
                                         <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"
                                             xmlns="http://www.w3.org/2000/svg">
                                             <path d="M5 3l14 9-14 9V3z" stroke-linecap="round" stroke-linejoin="round"
@@ -682,7 +696,7 @@
                     throw new Error(errorData.message || 'Failed to delete video.');
                 }
 
-                const videoElement = document.querySelector(`[data-video-id="${videoIdToDelete}"]`).closest('.group').parentElement;
+                const videoElement = document.querySelector(`[data-video-id="${videoIdToDelete}"]`).closest('.group');
                 if (videoElement) {
                     videoElement.remove();
                 }
