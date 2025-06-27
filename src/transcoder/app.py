@@ -791,6 +791,29 @@ def process_video(event):
     file_md5 = md5_hash.hexdigest()
     logger.info("Calculated MD5 hash: %s", file_md5)
 
+    output_prefix = f"processed/{file_md5}/"
+    manifest_key = output_prefix + "manifest.json"
+
+    # Check if the video is already processed or processing.
+    try:
+        response = s3.get_object(Bucket=bucket, Key=manifest_key)
+        manifest = json.loads(response["Body"].read().decode("utf-8"))
+        status = manifest.get("status")
+        if status in ["processing", "processing_complete"]:
+            logger.info(
+                f"Video with MD5 {file_md5} is already {status}. Skipping processing."
+            )
+            try:
+                os.remove(tmp_in)
+            except OSError as e:
+                logger.warning(f"Error removing temporary file {tmp_in}: {e}")
+            return
+    except s3.exceptions.ClientError as e:
+        if e.response["Error"]["Code"] == "NoSuchKey":
+            pass  # Not processed yet, continue
+        else:
+            raise
+
     # Probe video resolution and select appropriate presets.
     src_w, src_h = probe_resolution(tmp_in)
     logger.info("Source resolution: %dx%d", src_w, src_h)
@@ -800,8 +823,6 @@ def process_video(event):
     logger.info("Selected presets: %s", [p["name"] for p in presets])
 
     base_name, ext = os.path.splitext(os.path.basename(key))
-    output_prefix = f"processed/{file_md5}/"
-    manifest_key = output_prefix + "manifest.json"
 
     # Create an initial manifest to track processing status.
     initial_manifest = {

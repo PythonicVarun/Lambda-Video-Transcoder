@@ -116,7 +116,7 @@
                             <input class="hidden" id="dropzone-file" type="file" />
                         </div>
                         <button
-                            class="mt-6 w-full flex items-center justify-center rounded-md h-12 px-6 bg-[var(--primary-color)] text-base font-bold text-[var(--text-primary)] hover:bg-opacity-80 transition-colors"
+                            class="mt-6 w-full flex items-center justify-center rounded-md h-12 px-6 bg-[var(--primary-color)] text-base font-bold text-[var(--text-primary)] hover:bg-opacity-80 transition-colors disabled:bg-gray-500 disabled:cursor-not-allowed"
                             id="upload-button">
                             Start Upload
                         </button>
@@ -193,6 +193,16 @@
             </div>
         </div>
     </div>
+    <div id="alert-modal" class="fixed inset-0 z-[80] hidden items-center justify-center bg-black/80 backdrop-blur-sm">
+        <div class="w-full max-w-md rounded-lg bg-[var(--secondary-color)] p-6 shadow-xl">
+            <h3 id="alert-title" class="text-lg font-bold text-[var(--text-primary)]"></h3>
+            <p id="alert-message" class="mt-2 text-sm text-[var(--text-secondary)]"></p>
+            <div class="mt-6 flex justify-end gap-4">
+                <button id="close-alert-button"
+                    class="rounded-md bg-[var(--primary-color)] px-4 py-2 text-sm font-bold text-white hover:bg-opacity-80">OK</button>
+            </div>
+        </div>
+    </div>
     <script type="module">
         import { PlyrLayout, VidstackPlayer, TextTrack } from 'https://cdn.vidstack.io/player';
 
@@ -253,12 +263,42 @@
             }
         });
 
+        function resetDropzone() {
+            const dropzoneContent = dropzone.querySelector("div");
+            dropzoneFileInput.value = ""; // Clear the file input
+            dropzoneContent.innerHTML = `
+                <svg class="w-10 h-10 mb-3 text-[var(--primary-color)] icon-glow" fill="none"
+                    stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path
+                        d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
+                        stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+                </svg>
+                <p class="mb-2 text-sm text-[var(--text-secondary)]"><span class="font-semibold">Click
+                        to upload</span> or drag and drop</p>
+                <p class="text-xs text-[var(--text-secondary)]">MP4, MOV, AVI, WMV (MAX. 5GB)</p>
+            `;
+        }
+
         let activeUploads = {};
+        const processedVideos = new Set();
+        const ongoingTranscodes = new Set();
 
         uploadButton.addEventListener("click", async () => {
             const file = dropzoneFileInput.files[0];
             if (!file) {
-                alert("Please select a file to upload.");
+                showAlert("No File Selected", "Please select a file to upload.");
+                return;
+            }
+
+            if (processedVideos.has(file.name) || ongoingTranscodes.has(file.name)) {
+                showAlert("Duplicate Video", "This video has already been uploaded or is currently being processed.");
+                resetDropzone();
+                return;
+            }
+
+            if (activeUploads[file.name]) {
+                showAlert("Upload in Progress", "This file is currently being uploaded.");
+                resetDropzone();
                 return;
             }
 
@@ -271,6 +311,8 @@
             const fileName = file.name;
             let uploadId;
             let presignedUrls;
+
+            activeUploads[fileName] = true;
 
             try {
                 const createUploadResponse = await fetch("/create_multipart_upload", {
@@ -290,7 +332,9 @@
                 presignedUrls = uploadData.urls;
             } catch (error) {
                 console.error("Error creating multipart upload:", error);
-                alert("Error starting upload.");
+                showAlert("Upload Error", "There was an error starting the upload. Please try again.");
+                resetDropzone();
+                delete activeUploads[fileName];
                 return;
             }
 
@@ -322,7 +366,9 @@
                 } catch (error) {
                     console.error("Error uploading chunk:", error);
                     updateChunkProgress(fileName, partNumber, "failed");
-                    alert(`Error uploading chunk ${partNumber}.`);
+                    showAlert("Upload Error", `An error occurred while uploading chunk ${partNumber}. Please try again.`);
+                    resetDropzone();
+                    delete activeUploads[fileName];
                     return; // Stop upload if a chunk fails
                 }
             }
@@ -343,9 +389,13 @@
                 const result = await completeUploadResponse.json();
                 const video_id = result.video_id;
                 activeUploads[video_id] = setInterval(() => checkStatus(video_id), 5000);
+                fetchOngoingTranscodes();
+                resetDropzone();
             } catch (error) {
                 console.error("Error completing multipart upload:", error);
-                alert("Error finalizing upload.");
+                showAlert("Upload Error", "There was an error finalizing the upload. Please try again.");
+                resetDropzone();
+                delete activeUploads[fileName];
             }
         }
 
@@ -446,6 +496,19 @@
                         progressBar.style.backgroundColor = "var(--green-500)";
                         clearInterval(activeUploads[video_id]);
                         delete activeUploads[video_id];
+
+                        fetchAndDisplayVideos();
+                        fetchOngoingTranscodes();
+
+                        setTimeout(() => {
+                            const progressElement = document.getElementById(`progress-${video_id}`);
+                            if (progressElement) {
+                                progressElement.remove();
+                            }
+                            if (progressContainer.querySelectorAll('div[id^="progress-"]').length === 0) {
+                                noTasksMessage.style.display = 'block';
+                            }
+                        }, 3000);
                     }
                 } else if (data.status === "not_found") {
                     statusText.textContent = "Error: Not Found";
@@ -478,6 +541,7 @@
                 const container = document.getElementById("ongoing-transcoding-container");
                 if (!container) return;
                 container.innerHTML = ""; // Clear previous entries
+                ongoingTranscodes.clear();
 
                 if (transcodes.length === 0) {
                     const noTranscodesMessage = document.createElement("div");
@@ -487,6 +551,7 @@
                     container.appendChild(noTranscodesMessage);
                 } else {
                     transcodes.forEach((transcode) => {
+                        ongoingTranscodes.add(transcode.video_id);
                         const element = document.createElement("div");
                         element.id = `transcode-${transcode.video_id.replace(/[^a-zA-Z0-9]/g, "-")}`;
                         element.className = "bg-[var(--background-color)] p-4 rounded-lg border border-[var(--accent-color)]";
@@ -546,9 +611,11 @@
                 const videos = await response.json();
 
                 videosContainer.innerHTML = "";
+                processedVideos.clear();
 
                 if (videos.length > 0) {
                     videos.forEach(video => {
+                        processedVideos.add(video.video_id);
                         const videoElement = document.createElement('div');
                         const presets = sortPresets(video.presets || []).join(", ");
 
@@ -696,15 +763,11 @@
                     throw new Error(errorData.message || 'Failed to delete video.');
                 }
 
-                const videoElement = document.querySelector(`[data-video-id="${videoIdToDelete}"]`).closest('.group');
-                if (videoElement) {
-                    videoElement.remove();
-                }
-
                 hideDeleteConfirmModal();
+                fetchAndDisplayVideos();
             } catch (error) {
                 console.error('Error deleting video:', error);
-                alert(`Error: ${error.message}`);
+                showAlert("Error", error.message);
                 hideDeleteConfirmModal();
             }
         }
@@ -740,9 +803,36 @@
             }
         });
 
-        document.addEventListener("DOMContentLoaded", () => {
-            fetchAndDisplayVideos();
-            fetchOngoingTranscodes();
+        const alertModal = document.getElementById("alert-modal");
+        const alertTitle = document.getElementById("alert-title");
+        const alertMessage = document.getElementById("alert-message");
+        const closeAlertButton = document.getElementById("close-alert-button");
+
+        function showAlert(title, message) {
+            alertTitle.textContent = title;
+            alertMessage.textContent = message;
+            alertModal.classList.remove("hidden");
+            alertModal.classList.add("flex");
+        }
+
+        function hideAlert() {
+            alertModal.classList.add("hidden");
+            alertModal.classList.remove("flex");
+        }
+
+        closeAlertButton.addEventListener("click", hideAlert);
+        alertModal.addEventListener("click", (e) => {
+            if (e.target === alertModal) {
+                hideAlert();
+            }
+        });
+
+        document.addEventListener("DOMContentLoaded", async () => {
+            uploadButton.disabled = true;
+            uploadButton.textContent = "Loading...";
+            await Promise.all([fetchAndDisplayVideos(), fetchOngoingTranscodes()]);
+            uploadButton.disabled = false;
+            uploadButton.textContent = "Start Upload";
 
             setInterval(fetchAndDisplayVideos, 5000);
             setInterval(fetchOngoingTranscodes, 5000); // Refresh every 5 seconds
